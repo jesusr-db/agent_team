@@ -204,6 +204,78 @@ For capabilities not covered by curated templates (e.g., `domain:documentation`,
 3. The Domain SME is assigned `WebSearch` and `WebFetch` tools to research the domain
 4. SME runs in Phase 0 and produces a `domain-playbook.md` — a broadcast contract consumed by all downstream agents
 
+### Meta-Template Format
+
+Meta-templates instruct Opus how to generate a novel agent definition:
+
+```yaml
+# templates/meta/domain-sme-generator.yaml
+type: generator
+output_format: agent-definition-md    # Produces a full agent .md file
+
+generator_prompt: |
+  Given the PRD domain "{{domain}}" and project "{{project_description}}",
+  generate a Domain Subject Matter Expert agent definition.
+
+  The SME must:
+  1. Have deep knowledge of {{domain}} industry workflows
+  2. Research current best practices using WebSearch/WebFetch
+  3. Produce a domain-playbook.md covering:
+     - Industry-standard workflows relevant to the project
+     - Key data sources and their typical schemas
+     - Success metrics and KPIs
+     - Regulatory or compliance considerations
+     - Common pitfalls and how to avoid them
+  4. Be assigned model: haiku (research-focused, not code-heavy)
+  5. Run in Phase 0 before all other agents
+  6. Output a broadcast contract consumed by all agents
+
+  Generate the agent definition using the standard frontmatter format
+  (name, display_name, model, phase, skills, mcp_tools, inputs,
+  outputs, constraints) followed by the full role prompt.
+
+defaults:
+  model: haiku
+  phase: [0]
+  skills: []
+  mcp_tools: []
+```
+
+### Contract Schema Format
+
+`lib/contract-schema.yaml` defines the valid structure for all contracts:
+
+```yaml
+# Required fields
+name: string                    # Unique contract identifier
+producer: string                # Agent name that produces the output
+consumer: string | "broadcast"  # Agent name or "broadcast" for all agents
+
+# Optional: table definitions
+tables:
+  - name: string                # Table name
+    catalog: string             # UC catalog (supports {{template_vars}})
+    schema: string              # UC schema (supports {{template_vars}})
+    description: string
+    columns:
+      - name: string
+        type: string            # Spark SQL type
+        required: boolean
+    min_rows: integer           # Minimum expected row count
+
+# Optional: file artifact definitions
+artifacts:
+  - path: string                # Glob or directory path
+    description: string
+
+# Optional: validation rules
+validation:
+  - type: schema_match | artifact_exists | code_references | sql_check
+    description: string
+    query: string               # For sql_check type
+    expect: string              # For sql_check type
+```
+
 ### Dispatch Mechanism
 
 The PM orchestrator reads an agent definition, resolves all `{{template_variables}}`, and dispatches via:
@@ -326,6 +398,15 @@ QA validates contracts at phase boundaries using 4 checks:
 /start-team --agent data-engineer # Re-run a single agent
 /start-team --dry-run            # Show execution plan without dispatching
 ```
+
+#### `--agent` Flag Semantics
+
+When re-running a single agent:
+1. Load the agent's phase context from `progress.yaml` (uses the original phase)
+2. Dispatch the agent in a fresh worktree with the current (possibly edited) agent definition
+3. On completion, merge the worktree branch into main
+4. Re-run the QA gate for that agent's phase to validate the fix
+5. Update `progress.yaml` with the new agent status
 
 ### Startup Sequence
 
@@ -516,6 +597,7 @@ QA scope intensifies by phase:
 ### Phase 2: RAG + App
 - **Agents:** GenAI Architect (opus), App Developer (sonnet) — parallel group "app"
 - **Produces:** src/genai/ (embedding pipeline, Vector Search index, retrieval chain, prompt templates), src/app/backend/ (FastAPI), src/app/frontend/ (chat UI), resources/serving.yml
+- **Note:** Both agents code against the `genai-to-app` contract definition (endpoint shape, request/response schema) — not each other's live artifacts. Phase 3 wires them together.
 - **QA:** Code quality + genai-to-app contract validation
 
 ### Phase 3: Integration
