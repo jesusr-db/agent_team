@@ -1,0 +1,26 @@
+resources:
+  pipelines:
+    doc_ingestion_pipeline:
+      name: qa-chatbot-doc-ingestion
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      target: ${var.schema}
+      development: true
+      channel: PREVIEW
+      photon: true
+      configuration:
+        catalog: ${var.catalog}
+        schema: ${var.schema}
+      libraries:
+        - notebook:
+            path: ../src/ingestion/ingest_docs.py
+        - notebook:
+            path: ../src/transformations/chunk_docs.py
+
+  volumes:
+    source_docs_volume:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      name: source_docs
+      comment: Volume for uploading raw documentation files to be ingested
+      volume_type: MANAGED

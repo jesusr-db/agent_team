@@ -2,15 +2,13 @@ bundle:
   name: qa-chatbot
 
 workspace:
-  host: ${var.databricks_host}
+  profile: DEFAULT
 
 variables:
-  databricks_host:
-    description: Databricks workspace URL
-  project_catalog:
+  catalog:
     description: Unity Catalog catalog name
     default: main
-  project_schema:
+  schema:
     description: Unity Catalog schema name
     default: qa_chatbot
 
