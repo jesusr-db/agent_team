@@ -12,19 +12,23 @@ A Claude Code plugin (`agent-team`) that dynamically assembles and orchestrates 
 agent-team/
 ├── .claude-plugin/plugin.json          # Plugin manifest
 ├── commands/
-│   ├── create-team.md                  # /create-team <prd-path>
-│   └── start-team.md                   # /start-team [--phase N] [--agent name] [--dry-run]
-├── agents/                             # 7 registered agents with model/tools frontmatter
+│   ├── create-team.md                  # /create-team <prd-path> [--catalog --schema]
+│   ├── start-team.md                   # /start-team [--phase N] [--agent name] [--dry-run]
+│   └── add-feature.md                  # /add-feature <description or file>  (NEW)
+├── agents/                             # 8 registered agents with model/tools frontmatter
 │   ├── pm-orchestrator.md              # Opus — coordinates phased execution
 │   ├── data-engineer.md                # Sonnet — data ingestion/transformation
 │   ├── data-scientist.md               # Sonnet — ML models
 │   ├── genai-architect.md              # Opus — RAG/GenAI architecture
 │   ├── app-developer.md                # Sonnet — FastAPI + React apps
 │   ├── deploy-engineer.md              # Sonnet — DAB deployment
-│   └── qa-engineer.md                  # Sonnet — progressive QA validation
+│   ├── qa-engineer.md                  # Sonnet — progressive QA validation
+│   └── ui-ux-analyst.md               # Sonnet — UI/UX wireframes + specs  (NEW)
 ├── skills/
 │   ├── team-builder/SKILL.md           # PRD analysis → team assembly
-│   └── phase-planner/SKILL.md          # Dependency analysis → phase structure
+│   ├── phase-planner/SKILL.md          # Dependency analysis → phase structure
+│   ├── data-analyzer/SKILL.md          # UC table profiling  (NEW)
+│   └── feature-scoper/SKILL.md         # Incremental feature scoping  (NEW)
 ├── templates/
 │   ├── core/                           # Metadata-only (capabilities, output_paths, registered_agent pointer)
 │   │   ├── data-engineer.yaml
@@ -32,12 +36,15 @@ agent-team/
 │   │   ├── genai-architect.yaml
 │   │   ├── app-developer.yaml
 │   │   ├── deploy-engineer.yaml
-│   │   └── qa-engineer.yaml
+│   │   ├── qa-engineer.yaml
+│   │   └── ui-ux-analyst.yaml         # (NEW)
 │   └── meta/                           # Generators for dynamic specialist agents
 │       ├── domain-sme-generator.yaml
 │       └── specialist-generator.yaml
 ├── lib/contract-schema.yaml            # Contract format reference
-├── test/qa-chatbot-prd.md              # Test PRD for validation
+├── test/
+│   ├── qa-chatbot-prd.md              # Test PRD for validation
+│   └── add-feature-test.md            # Test scenario for /add-feature  (NEW)
 └── docs/superpowers/
     ├── specs/2026-03-16-agent-team-plugin-design.md
     └── plans/2026-03-16-agent-team-plugin.md
@@ -147,6 +154,35 @@ Execution Plan:
 - **Checkpoint recovery** — progress.yaml should be updated and committed after every step
 - **Phase boundary human touchpoints** — PM should pause and report after each phase
 - **Progressive QA** — QA scope should intensify by phase (code quality → contracts → e2e → deployed)
+
+## New Features (v0.2.0)
+
+### Feature 1: Data Catalog Analyzer
+- `/create-team` now accepts `--catalog <name> --schema <name>` flags
+- Automatically profiles existing UC tables (schema, stats, sample rows, relationships)
+- Downstream agents receive real column names/types instead of PRD-inferred schemas
+- Skill: `skills/data-analyzer/SKILL.md`
+
+### Feature 2: Incremental Feature Work
+- New command: `/add-feature "description"` or `/add-feature path/to/feature.md`
+- Analyzes existing codebase and selects only the agents needed
+- Generates scoped `.agent-team/` config with `mode: incremental`
+- Tags starting commit for easy rollback
+- Skill: `skills/feature-scoper/SKILL.md`, Command: `commands/add-feature.md`
+- Test scenario: `test/add-feature-test.md`
+
+### Feature 3: UI/UX Workflow Analyst
+- New agent: `ui-ux-analyst` (sonnet) — produces wireframes and component specs
+- Uses `ui-ux-pro-max` skill for visual design
+- Runs parallel with data-engineer in Phase 1 (no new phases added)
+- Produces: ui-workflow.md, HTML wireframes, ui-component-contract.yaml
+- App-developer codes against wireframes and component contract
+- Agent: `agents/ui-ux-analyst.md`, Template: `templates/core/ui-ux-analyst.yaml`
+
+### Introspection Loop
+- PM orchestrator captures learnings after each phase (Step 9)
+- Writes to `CLAUDE.md` under `## Introspection` section
+- Includes: what worked, what failed, patterns to watch for, QA iterations
 
 ## Architecture Decisions
 
