@@ -66,11 +66,12 @@ phases:
     status: in_progress
     agents:
       - name: app-developer
-        status: dispatching
+        status: DONE
     steps:
       read_phase_config: completed
       resolve_contracts: completed
-      dispatch_agents: in_progress
+      dispatch_agents: completed
+      await_agents: completed
       await_agents: pending
       merge_worktrees: pending
       qa_gate: pending
