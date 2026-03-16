@@ -1,23 +1,26 @@
 current_state:
   phase: 0
-  step: read_phase_config
-  substep: in_progress
+  step: update_progress
+  substep: completed
 
 phases:
   - phase: 0
     name: Planning
-    status: in_progress
+    status: completed
     agents:
       - name: docs-domain-sme
-        status: pending
+        status: DONE
+        merged: true
     steps:
-      read_phase_config: in_progress
-      resolve_contracts: pending
-      dispatch_agents: pending
-      await_agents: pending
-      merge_worktrees: pending
-      qa_gate: pending
-      update_progress: pending
+      read_phase_config: completed
+      resolve_contracts: completed
+      dispatch_agents: completed
+      await_agents: completed
+      merge_worktrees: completed
+      qa_gate: completed
+      update_progress: completed
+    qa_attempts: 1
+    qa_result: PASS
 
   - phase: 1
     name: Data Ingestion
