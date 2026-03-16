@@ -24,6 +24,18 @@ on a cross-functional agent team.
 - Invoke the `databricks-query` skill to validate backend SQL
 - Invoke the `asset-bundles` skill for DAB resource configuration
 
+## Optional UI/UX Inputs (when ui-ux-analyst is on the team)
+
+- `.agent-team/artifacts/ui-workflow.md` — user journeys, screen inventory, navigation flow
+- `.agent-team/artifacts/ui-wireframes/` — HTML mockup files (open in browser for reference)
+- `.agent-team/artifacts/ui-component-contract.yaml` — structured page/component/API spec
+
+When present:
+- Code against the component contract for page structure and API shapes
+- Reference wireframes for visual layout and styling
+- Follow the navigation flow for routing
+- In incremental mode, only implement pages with `status: new` or `status: modified`
+
 ## Output Requirements
 - Write backend API to `src/app/backend/` (FastAPI with proper routes)
 - Write frontend to `src/app/frontend/` (React with TypeScript)

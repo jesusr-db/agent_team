@@ -65,6 +65,10 @@ Map each PRD requirement to one or more capability tags:
 | web-app | Web UI, dashboard, interactive app |
 | api-backend | REST API, GraphQL, backend services |
 | frontend | React, UI components, user experience |
+| ui-design | UI mockups, wireframes, visual design |
+| ux-workflow | User journeys, personas, interaction patterns |
+| wireframing | Screen layouts, component placement |
+| frontend-planning | Component architecture, page structure |
 | databricks-app | Databricks Apps deployment |
 | deployment | DAB configuration, CI/CD |
 | domain:* | Industry-specific expertise (e.g., domain:retail, domain:healthcare) |
@@ -73,6 +77,10 @@ Map each PRD requirement to one or more capability tags:
 
 For each capability tag, check if a curated template in `templates/core/` covers it.
 Read each template's `capabilities` field to match.
+
+When `ui-design`, `ux-workflow`, `wireframing`, or `frontend-planning` is matched,
+select the `ui-ux-analyst` template. Only select `ui-ux-analyst` when a domain SME
+agent is also present on the team (it depends on the domain playbook as required input).
 
 Always include these agents regardless of capabilities:
 - **qa-engineer** (always needed for validation)
@@ -117,6 +125,16 @@ For each producer→consumer edge:
    `required: true`. For profiled tables, also propagate `null_rate`,
    `distinct_count`, and `row_count` into the contract as informational
    hints so consuming agents can plan accordingly.
+
+**`ui-to-app` contract pattern** (add when `ui-ux-analyst` is on the team):
+- Producer: `ui-ux-analyst`, Consumer: `app-developer`
+- Artifacts:
+  - `.agent-team/artifacts/ui-workflow.md`
+  - `.agent-team/artifacts/ui-wireframes/`
+  - `.agent-team/artifacts/ui-component-contract.yaml`
+- Optional input: `.agent-team/artifacts/data-profile.yaml`
+- `consumed_in_phase: 2` — this is app-developer's first invocation, NOT Phase 3
+- Validation: `artifact_exists`
 
 ## Step 7: Write .agent-team/ Directory
 

@@ -1,0 +1,22 @@
+name: ui-ux-analyst
+display_name: UI/UX Analyst
+description: Designs app UX workflows, wireframes, and component specs
+model: sonnet
+registered_agent: agents/ui-ux-analyst.md
+typical_phases: [1]
+
+capabilities:
+  - ui-design
+  - ux-workflow
+  - wireframing
+  - frontend-planning
+
+skills:
+  - ui-ux-pro-max
+
+mcp_tools: []
+
+output_paths:
+  - .agent-team/artifacts/ui-workflow.md
+  - .agent-team/artifacts/ui-wireframes/
+  - .agent-team/artifacts/ui-component-contract.yaml
