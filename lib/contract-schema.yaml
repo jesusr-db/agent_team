@@ -1,0 +1,77 @@
+# Contract Schema Reference
+# Defines the valid structure for all inter-agent contracts.
+# Contracts are written to .agent-team/contracts/*.yaml
+
+# Required fields
+# name: string                    - Unique contract identifier (e.g., "data-to-genai")
+# producer: string                - Agent name that produces the output
+# consumer: string | "broadcast"  - Agent name or "broadcast" for all agents
+
+# Optional: table definitions
+# tables:
+#   - name: string                - Table name in Unity Catalog
+#     catalog: string             - UC catalog (supports {{template_vars}})
+#     schema: string              - UC schema (supports {{template_vars}})
+#     description: string         - What this table contains
+#     columns:
+#       - name: string            - Column name
+#         type: string            - Spark SQL type (STRING, INT, DOUBLE, BOOLEAN, etc.)
+#         required: boolean       - Whether this column must be present
+#     min_rows: integer           - Minimum expected row count for validation
+
+# Optional: file artifact definitions
+# artifacts:
+#   - path: string                - Glob or directory path relative to project root
+#     description: string         - What this artifact contains
+
+# Optional: validation rules
+# validation:
+#   - type: string                - One of: schema_match, artifact_exists, code_references, sql_check
+#     description: string         - Human-readable description of what this validates
+#     query: string               - SQL query (for sql_check type only)
+#     expect: string              - Expected result (for sql_check type only, e.g. "> 0")
+
+# Example:
+name: data-to-genai
+producer: data-engineer
+consumer: genai-architect
+
+tables:
+  - name: doc_chunks
+    catalog: "{{project_catalog}}"
+    schema: "{{project_schema}}"
+    description: Chunked and cleaned documentation for embedding
+    columns:
+      - name: chunk_id
+        type: STRING
+        required: true
+      - name: doc_source
+        type: STRING
+        required: true
+      - name: chunk_text
+        type: STRING
+        required: true
+      - name: chunk_index
+        type: INT
+        required: true
+      - name: metadata
+        type: STRING
+        required: false
+    min_rows: 50
+
+artifacts:
+  - path: src/ingestion/
+    description: Document ingestion and chunking pipelines
+  - path: src/transformations/
+    description: Text cleaning and chunk processing
+  - path: resources/pipelines.yml
+    description: SDP pipeline definitions
+
+validation:
+  - type: schema_match
+    description: Consumer can read all required columns
+  - type: artifact_exists
+    description: All listed artifacts exist in project
+  - type: sql_check
+    query: "SELECT COUNT(*) FROM {{catalog}}.{{schema}}.doc_chunks"
+    expect: "> 0"
