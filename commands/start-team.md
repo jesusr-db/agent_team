@@ -51,6 +51,22 @@ phases set to `pending`.
 
 If it exists, read it to determine resume state.
 
+### 4.5: Detect Incremental Mode
+
+Read `.agent-team/team-manifest.yaml` and check for `mode: incremental`.
+
+If `mode: incremental`:
+- **Skip Step 2** (Initialize Git) — the repo already exists
+- **Skip Step 3** (Scaffold DAB Project) — the project already exists
+- Display to the user:
+  ```
+  Incremental mode: adding feature '<feature_description>'
+  ```
+  where `<feature_description>` is read from `team-manifest.yaml`.
+- Proceed directly to PM orchestrator dispatch (skip all scaffolding)
+
+If `mode` is absent or not `incremental`, continue with all steps normally.
+
 ## Handle Flags
 
 ### --dry-run
