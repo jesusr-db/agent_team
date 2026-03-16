@@ -1,7 +1,7 @@
 current_state:
-  phase: 2
-  step: update_progress
-  substep: completed
+  phase: 3
+  step: dispatch_agents
+  substep: in_progress
 
 phases:
   - phase: 0
@@ -63,14 +63,14 @@ phases:
 
   - phase: 3
     name: Integration
-    status: pending
+    status: in_progress
     agents:
       - name: app-developer
-        status: pending
+        status: dispatching
     steps:
-      read_phase_config: pending
-      resolve_contracts: pending
-      dispatch_agents: pending
+      read_phase_config: completed
+      resolve_contracts: completed
+      dispatch_agents: in_progress
       await_agents: pending
       merge_worktrees: pending
       qa_gate: pending
