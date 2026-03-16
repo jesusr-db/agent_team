@@ -1,7 +1,7 @@
 current_state:
-  phase: 1
-  step: update_progress
-  substep: completed
+  phase: 2
+  step: dispatch_agents
+  substep: in_progress
 
 phases:
   - phase: 0
@@ -42,16 +42,16 @@ phases:
 
   - phase: 2
     name: RAG + App
-    status: pending
+    status: in_progress
     agents:
       - name: genai-architect
-        status: pending
+        status: dispatching
       - name: app-developer
-        status: pending
+        status: dispatching
     steps:
-      read_phase_config: pending
-      resolve_contracts: pending
-      dispatch_agents: pending
+      read_phase_config: completed
+      resolve_contracts: completed
+      dispatch_agents: in_progress
       await_agents: pending
       merge_worktrees: pending
       qa_gate: pending
