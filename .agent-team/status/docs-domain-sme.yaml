@@ -1,0 +1,7 @@
+status: DONE
+artifacts:
+  - .agent-team/artifacts/domain-playbook.md
+  - .agent-team/artifacts/data-requirements.yaml
+  - .agent-team/artifacts/success-criteria.yaml
+concerns: []
+blockers: []
