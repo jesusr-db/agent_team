@@ -94,6 +94,9 @@ Write all files:
 - `.agent-team/phases/*.yaml` — one per phase
 - `.agent-team/contracts/*.yaml` — one per producer→consumer edge
 - `.agent-team/status/progress.yaml` — initialized with all phases pending
+  - Each phase's `steps` must include: read_phase_config, resolve_contracts,
+    dispatch_agents, await_agents, merge_worktrees, qa_gate, update_progress,
+    introspection — all set to `pending`
 
 ## Step 8: Present Team Summary
 

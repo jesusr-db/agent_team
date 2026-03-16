@@ -156,6 +156,55 @@ For each agent:
   ```
 - Advance to next phase
 
+### Step 9: introspection
+After each phase completes, perform an introspection loop that captures what
+agents struggled with. This builds institutional knowledge for future runs.
+
+**For each agent in the completed phase, review:**
+1. **Status file** — did the agent report DONE_WITH_CONCERNS or BLOCKED?
+2. **QA results** — what failed on the first QA attempt? What needed fixing?
+3. **Re-dispatches** — was the agent re-dispatched? Why? (NEEDS_CONTEXT, model upgrade, etc.)
+4. **Merge conflicts** — were there conflicts during worktree merge?
+5. **Human escalations** — did anything require human intervention?
+
+**Write findings to `CLAUDE.md` in the project root** under an `## Introspection` section.
+If CLAUDE.md doesn't exist, create it with a header. If the section exists, append to it.
+
+Format:
+```markdown
+## Introspection
+
+### Phase N: <phase_name> (<timestamp>)
+
+#### What worked
+- <agent>: <what went smoothly>
+
+#### What failed or needed fixing
+- <agent>: <what went wrong, root cause, how it was fixed>
+  - Error: <specific error message if applicable>
+  - Fix: <what was done to resolve it>
+
+#### Patterns to watch for
+- <reusable insight for future runs, e.g. "DLT notebooks cannot import sibling Python files">
+
+#### QA iterations
+- Attempt 1: <PASS/FAIL — what failed>
+- Attempt 2: <if applicable>
+```
+
+**Key principles:**
+- Be specific — include actual error messages and file paths
+- Focus on **why** things failed, not just **that** they failed
+- Capture patterns that would help a future agent team avoid the same issue
+- Keep it concise — one paragraph per issue, not a wall of text
+- This is a learning log, not a blame log
+
+**Checkpoint:** Write introspection step status. Commit CLAUDE.md:
+```bash
+git add CLAUDE.md
+git commit -m "introspection: phase N learnings"
+```
+
 ## Phase Boundary: Human Touchpoint
 
 At the end of each phase, report to the user:
@@ -164,6 +213,7 @@ Phase N (Name) completed ✓
   Agents: [list with statuses]
   Artifacts: [files created/modified]
   QA: PASS (attempt N)
+  Introspection: [key learnings written to CLAUDE.md]
 
 Next: Phase N+1 (Name) — agents: [list]
 Continue? (yes / pause / adjust)
@@ -185,6 +235,7 @@ Final Report:
 Artifacts: [full list of created files]
 QA Results: [summary per phase]
 Deploy Status: [if Phase 4 ran]
+Introspection: See CLAUDE.md for full learnings across all phases
 
 The project is ready for review.
 ```
@@ -202,6 +253,7 @@ When resuming from a checkpoint, use this logic per step:
 | merge_worktrees | Check git log for merged branches, merge only unmerged |
 | qa_gate | Re-run QA from scratch (stateless) |
 | update_progress | Write progress and commit (idempotent) |
+| introspection | Re-read agent statuses and QA results, rewrite CLAUDE.md section (idempotent) |
 
 ## Checkpoint Write Protocol
 

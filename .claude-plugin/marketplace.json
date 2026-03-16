@@ -1,0 +1,24 @@
+{
+  "name": "agent-team-marketplace",
+  "owner": {
+    "name": "Jesus Rodriguez",
+    "email": "jesus.rodriguez@databricks.com"
+  },
+  "metadata": {
+    "description": "Agent Team plugin for orchestrating AI agent teams",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "agent-team",
+      "source": "./",
+      "description": "Dynamically assemble and orchestrate AI agent teams to build Databricks applications end-to-end. Use /create-team to analyze a PRD and assemble a team, then /start-team to execute.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Databricks Field Engineering"
+      },
+      "category": "development",
+      "keywords": ["agents", "orchestration", "team", "databricks", "prd"]
+    }
+  ]
+}
