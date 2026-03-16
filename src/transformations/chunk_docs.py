@@ -1,3 +1,4 @@
+# Databricks notebook source
 """DLT table definition for document chunking.
 
 Reads from the raw_documents streaming table, applies the chunking logic from
