@@ -8,7 +8,16 @@ You are creating a dynamic agent team to build a Databricks application.
 
 ## Input
 
-The user provided a PRD path: {{ARGUMENTS}}
+The user provided a PRD path and optional flags: {{ARGUMENTS}}
+
+Parse the following optional flags from `{{ARGUMENTS}}`:
+
+- `--catalog <name>` — Unity Catalog catalog to profile
+- `--schema <name>` — Unity Catalog schema/database to profile
+- `--max-tables N` — maximum tables to profile (default: 50; passed through to data-analyzer)
+
+The PRD path is the first non-flag argument. Flags may appear before or after
+the path.
 
 ## Execution
 
@@ -21,9 +30,34 @@ google-docs skill to read it. If it's a local file path, read it directly.
 
 If no path was provided, ask the user for the PRD location.
 
+### Step 1.5: Analyze existing data
+
+**Trigger:** Run this step when either condition is true:
+1. Both `--catalog` and `--schema` flags were provided in the arguments.
+2. The PRD text contains references to existing tables in the form
+   `catalog.schema.table` (three-part dot-separated identifiers).
+
+**If triggered:**
+
+Invoke the **data-analyzer** skill with:
+- `catalog` — from `--catalog` flag, or inferred from the first
+  `catalog.schema.table` reference found in the PRD
+- `schema` — from `--schema` flag, or inferred from the PRD reference
+- `max_tables` — from `--max-tables` flag, or default (50)
+
+The skill produces `.agent-team/artifacts/data-profile.yaml`.
+
+If the skill reports MCP unavailable or all tables return errors, emit a
+warning and continue — do **not** block team assembly.
+
+**If not triggered:** Skip this step entirely.
+
 ### Step 2: Invoke team-builder skill
 
 Use the team-builder skill to:
+0. If `.agent-team/artifacts/data-profile.yaml` was produced in Step 1.5,
+   pass it to the team-builder so real table schemas, column stats, sample
+   rows, and inferred relationships are available during team assembly.
 1. Parse the PRD and extract requirements
 2. Map requirements to capability tags
 3. Select curated agent templates from `templates/core/`
