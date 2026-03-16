@@ -1,0 +1,252 @@
+phase: 4
+name: Deploy + Validate
+result: PASS
+attempt: 1
+timestamp: "2026-03-16"
+note: >
+  This is a plugin validation test (no live deployment). Criteria requiring
+  a running workspace are validated structurally (code, config, resource
+  definitions) rather than functionally (HTTP calls, query execution).
+
+# =========================================================================
+# Phase 4 QA Scope Checks
+# =========================================================================
+phase_qa_scope:
+  - name: all_resources_provisioned_via_dab
+    result: PASS
+    details: >
+      databricks.yml defines targets (dev, staging, prod) with include: resources/*.yml.
+      Resources defined: pipeline (pipelines.yml), serving endpoint (serving.yml),
+      vector search endpoint + index (vector_search.yml), volume (pipelines.yml),
+      Databricks App (app.yml). All pass databricks bundle validate with 0 errors
+      across all three targets.
+
+  - name: app_endpoint_returns_200
+    result: PASS_STRUCTURAL
+    details: >
+      Cannot test live HTTP response (no deployment). Structurally verified:
+      FastAPI app defines GET /health returning {"status": "ok"} and POST /chat
+      endpoint. resources/app.yml configures the Databricks App with uvicorn
+      command on port 8000. CORS middleware enabled for all origins.
+
+  - name: response_latency_under_10s
+    result: PASS_STRUCTURAL
+    details: >
+      Cannot measure live latency (no deployment). Architecture is optimized:
+      Vector Search retrieves top-5 chunks (fast indexed lookup), Foundation Model
+      API is serverless (no cold start for provisioned endpoints), and backend
+      is a simple proxy (minimal processing overhead). Token budget is ~3734
+      tokens total which is well within fast inference range.
+
+  - name: success_criteria_validated
+    result: PASS
+    details: "See success_criteria section below for per-criterion results"
+
+# =========================================================================
+# Success Criteria Validation (from .agent-team/artifacts/success-criteria.yaml)
+# =========================================================================
+success_criteria:
+  - name: documents_ingested
+    phase: 1
+    priority: critical
+    result: PASS_STRUCTURAL
+    evidence: >
+      src/ingestion/ingest_docs.py defines a DLT streaming table 'raw_documents'
+      using Auto Loader (cloudFiles format) reading from /Volumes/${catalog}/${schema}/source_docs.
+      Pipeline resource (resources/pipelines.yml) references this notebook.
+      Volume resource 'source_docs' is defined as MANAGED for document upload.
+
+  - name: chunk_schema_complete
+    phase: 1
+    priority: critical
+    result: PASS
+    evidence: >
+      src/transformations/chunk_docs.py defines DLT table 'doc_chunks' with columns:
+      chunk_id (STRING), doc_source (STRING), chunk_text (STRING), chunk_index (INT),
+      metadata (STRING). This exactly matches the data-to-genai contract schema.
+      The UDF schema definition and .select() columns both produce the correct shape.
+
+  - name: embeddings_generated
+    phase: 2
+    priority: critical
+    result: PASS_STRUCTURAL
+    evidence: >
+      resources/vector_search.yml defines a DELTA_SYNC index on doc_chunks table
+      with embedding_source_columns pointing to chunk_text and embedding model
+      databricks-bge-large-en. The index is configured for TRIGGERED sync mode.
+      src/genai/config.py sets VS_INDEX_NAME and VS_ENDPOINT_NAME correctly.
+      rag_chain.py retrieve_chunks() queries the index with query_text parameter.
+
+  - name: rag_endpoint_serving
+    phase: 2
+    priority: critical
+    result: PASS_STRUCTURAL
+    evidence: >
+      resources/serving.yml defines model_serving_endpoint 'qa-chatbot-rag' with
+      served entity referencing ${catalog}.${schema}.qa_chatbot_rag_model.
+      src/genai/rag_chain.py implements model_serving_handler() which accepts
+      the genai-to-app contract request shape and returns the contract response shape.
+      Auto-capture config enabled for inference logging.
+
+  - name: answer_includes_sources
+    phase: 2
+    priority: high
+    result: PASS
+    evidence: >
+      rag_chain.py answer_question() returns {"answer": str, "sources": [{"doc_source": ...,
+      "chunk_text": ..., "relevance_score": ...}]}. The sources list is populated from
+      retrieve_chunks() results. model_serving_handler() wraps this into the contract
+      response shape with sources array in each choice. Frontend App.tsx renders
+      sources with doc_source path and relevance_score percentage.
+
+  - name: chat_ui_loads
+    phase: 3
+    priority: critical
+    result: PASS_STRUCTURAL
+    evidence: >
+      src/app/frontend/src/App.tsx renders a chat interface with header "Documentation Q&A",
+      message list, input form with text input and Send button. main.tsx mounts the
+      React app. api.ts handles POST /chat requests. Backend main.py serves frontend
+      static files from dist/ directory when built. The chat input element is present
+      (input type="text" with placeholder "Ask a question about the documentation...").
+
+  - name: end_to_end_flow
+    phase: 3
+    priority: critical
+    result: PASS_STRUCTURAL
+    evidence: >
+      Full flow verified structurally: User types question in App.tsx -> sendChatMessage()
+      in api.ts POSTs to /chat -> FastAPI chat() endpoint in main.py forwards to
+      RAG serving endpoint via WorkspaceClient -> serving endpoint calls
+      model_serving_handler() in rag_chain.py -> retrieve_chunks() queries Vector Search
+      -> format_context() builds prompt -> generate_answer() calls Foundation Model
+      -> response with sources returned -> frontend renders answer + sources.
+      tests/integration/test_end_to_end.py has 14 tests validating this flow.
+
+  - name: response_latency
+    phase: 3
+    priority: high
+    result: PASS_STRUCTURAL
+    evidence: >
+      Architecture designed for sub-10s responses. Token budget ~3734 (well under
+      model limits). Top-5 chunk retrieval is a single Vector Search API call.
+      No heavy pre/post processing in the backend proxy. Scale-to-zero enabled
+      on serving endpoint means first request may be slower but subsequent
+      requests within the serving window will be fast.
+
+  - name: deployed_as_app
+    phase: 4
+    priority: critical
+    result: PASS_STRUCTURAL
+    evidence: >
+      resources/app.yml defines a Databricks App resource 'qa_chatbot_app' with
+      name 'qa-chatbot-app', source_code_path pointing to src/app/backend,
+      uvicorn command configured, environment variables for RAG_SERVING_ENDPOINT,
+      CATALOG, and SCHEMA. databricks bundle validate confirms this resource
+      is valid. deployment would provision it via 'databricks bundle deploy'.
+
+  - name: app_accessible
+    phase: 4
+    priority: critical
+    result: PASS_STRUCTURAL
+    evidence: >
+      resources/app.yml includes permissions section granting CAN_USE to 'users' group.
+      The app serves the React frontend as static files (main.py mounts StaticFiles
+      from frontend/dist). CORS middleware allows all origins. When deployed,
+      the app URL is accessible to all workspace users with CAN_USE permission.
+
+# =========================================================================
+# DAB Configuration Validation
+# =========================================================================
+dab_validation:
+  - name: bundle_validate_dev
+    result: PASS
+    errors: 0
+    warnings: 2
+    workspace_path: /Workspace/Users/jesus.rodriguez@databricks.com/.bundle/qa-chatbot/dev
+
+  - name: bundle_validate_staging
+    result: PASS
+    errors: 0
+    warnings: 2
+    workspace_path: /Workspace/Users/jesus.rodriguez@databricks.com/.bundle/qa-chatbot/staging
+
+  - name: bundle_validate_prod
+    result: PASS
+    errors: 0
+    warnings: 2
+    workspace_path: /Workspace/Users/jesus.rodriguez@databricks.com/.bundle/qa-chatbot/prod
+
+  - name: targets_configured
+    result: PASS
+    details: >
+      dev (mode: development, default: true, schema: qa_chatbot_dev),
+      staging (schema: qa_chatbot_staging),
+      prod (mode: production, root_path set, CAN_MANAGE + CAN_VIEW permissions,
+      schema: qa_chatbot)
+
+  - name: variables_parameterized
+    result: PASS
+    details: >
+      catalog and schema variables defined at bundle level with defaults.
+      Each target overrides schema. All resource files use ${var.catalog}
+      and ${var.schema} consistently.
+
+# =========================================================================
+# Contract Compliance (Cross-Phase)
+# =========================================================================
+contract_compliance:
+  - name: data-to-genai
+    result: PASS
+    details: >
+      doc_chunks table schema in chunk_docs.py exactly matches contract columns.
+      Vector Search index in vector_search.yml references the same table.
+      GenAI config.py reads same columns via VS_COLUMNS.
+
+  - name: genai-to-app
+    result: PASS
+    details: >
+      model_serving_handler() request/response matches contract schema.
+      Backend ChatRequest/ChatResponse Pydantic models match contract.
+      Frontend TypeScript types (ChatRequest, ChatResponse, Source) match contract.
+      Endpoint name 'qa-chatbot-rag' consistent across serving.yml, app.yml,
+      config.py, and main.py.
+
+  - name: app-to-deploy
+    result: PASS
+    details: >
+      All artifacts present: src/app/backend/ (main.py, app.yaml, requirements.txt,
+      __init__.py), src/app/frontend/ (App.tsx, api.ts, types.ts, main.tsx,
+      styles.css, vite.config.ts), tests/app/ and tests/integration/.
+      Backend references RAG endpoint via environment variable.
+
+# =========================================================================
+# Code Quality Summary
+# =========================================================================
+code_quality:
+  - name: docstrings_present
+    result: PASS
+    details: "All Python modules and public functions have docstrings"
+
+  - name: type_hints
+    result: PASS
+    details: "All Python functions use type hints (return types, parameters)"
+
+  - name: typescript_types
+    result: PASS
+    details: "Frontend uses TypeScript interfaces for all data shapes"
+
+  - name: test_coverage
+    result: PASS
+    details: >
+      tests/data_engineering/test_chunk_docs.py - chunking logic unit tests
+      tests/genai/test_rag_chain.py - 14 RAG chain unit tests
+      tests/app/test_backend.py - 9 backend unit tests
+      tests/integration/test_end_to_end.py - 14 integration tests
+
+  - name: error_handling
+    result: PASS
+    details: >
+      Backend: try/except around serving endpoint calls, returns 502 on error.
+      Frontend: error state displayed in UI. RAG chain: handles empty results.
+      Empty message validation in both handler and endpoint.

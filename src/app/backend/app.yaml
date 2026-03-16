@@ -10,6 +10,6 @@ env:
   - name: RAG_SERVING_ENDPOINT
     value: qa-chatbot-rag
   - name: CATALOG
-    value: ${var.catalog}
+    value: main
   - name: SCHEMA
-    value: ${var.schema}
+    value: qa_chatbot_dev
