@@ -1,0 +1,19 @@
+resources:
+  model_serving_endpoints:
+    rag_serving_endpoint:
+      name: qa-chatbot-rag
+      config:
+        served_entities:
+          - name: qa-chatbot-rag-entity
+            entity_name: ${var.catalog}.${var.schema}.qa_chatbot_rag_model
+            entity_version: "1"
+            workload_size: Small
+            scale_to_zero_enabled: true
+            environment_vars:
+              CATALOG: ${var.catalog}
+              SCHEMA: ${var.schema}
+        auto_capture_config:
+          catalog_name: ${var.catalog}
+          schema_name: ${var.schema}
+          table_name_prefix: qa_chatbot_rag
+          enabled: true
