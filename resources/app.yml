@@ -1,0 +1,25 @@
+resources:
+  apps:
+    qa_chatbot_app:
+      name: qa-chatbot-app
+      description: "Q&A Chatbot - Documentation assistant powered by RAG on Databricks"
+      source_code_path: ../src/app/backend
+      config:
+        command:
+          - uvicorn
+          - main:app
+          - --host
+          - 0.0.0.0
+          - --port
+          - "8000"
+        env:
+          - name: RAG_SERVING_ENDPOINT
+            value: qa-chatbot-rag
+          - name: CATALOG
+            value: ${var.catalog}
+          - name: SCHEMA
+            value: ${var.schema}
+
+      permissions:
+        - user_name: users
+          level: CAN_USE

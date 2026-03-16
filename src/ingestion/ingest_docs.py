@@ -1,3 +1,4 @@
+# Databricks notebook source
 """Document ingestion pipeline using Databricks Auto Loader.
 
 Reads raw documentation files (Markdown, plain text, reStructuredText) from a
