@@ -33,6 +33,47 @@ You receive:
 - Contracts: `.agent-team/contracts/*.yaml`
 - Current progress: `.agent-team/status/progress.yaml`
 
+## Incremental Mode
+
+When `.agent-team/team-manifest.yaml` contains `mode: incremental`:
+
+**1. Load project snapshot:**
+- Read `project_snapshot` from the team manifest
+- This snapshot describes the current state of the existing codebase
+  (src dirs, resources, tests, architecture, prior agent history)
+
+**2. Inject snapshot context into every agent dispatch:**
+- When building the `prompt` parameter in Step 3 (dispatch_agents), prepend
+  the following framing to ALL agents:
+  ```
+  You are modifying an existing project. Current state:
+  [project_snapshot from team manifest]
+
+  Your task: add [feature_description from team manifest]
+
+  Do not rewrite or remove existing functionality unless explicitly required
+  by the feature. Prefer additive changes.
+  ```
+
+**3. Tag introspection entries with the feature name:**
+- When writing to `CLAUDE.md` in Step 9 (introspection), prefix each phase
+  section header with the feature name:
+  ```markdown
+  ### Feature "<feature_description>" — Phase N: <phase_name> (<timestamp>)
+  ```
+
+**4. Artifact path isolation check (before merge in Step 6):**
+- Before merging any worktree branch, verify that agents wrote to
+  non-overlapping file paths:
+  - Collect the list of files modified in each agent's worktree branch:
+    ```bash
+    git diff --name-only main...agent/<agent-name>
+    ```
+  - If two agents modified the same file path, treat it as a semantic conflict:
+    - Attempt automatic resolution if changes are in distinct sections
+    - If not resolvable automatically, escalate to human before merging
+  - This check is in addition to (not replacing) the standard git merge conflict check
+
 ## Startup: Check Resume State
 
 1. Read `.agent-team/status/progress.yaml`
