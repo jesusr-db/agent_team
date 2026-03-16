@@ -17,6 +17,11 @@ Read the PRD document and extract:
 - **User interactions**: How users interact with the app
 - **Technical constraints**: Platform, performance, compliance requirements
 - **Success criteria**: How to measure if the app works
+- **Data profile** — if `.agent-team/artifacts/data-profile.yaml` exists,
+  read it and use it as the authoritative source for real table schemas,
+  column names and types, column statistics, sample data, and inferred
+  relationships. This overrides any table structure inferred from PRD text
+  alone.
 
 ## Step 2: Map to Capability Tags
 
@@ -85,6 +90,12 @@ For each producer→consumer edge:
 4. Include artifact paths from agent template `output_paths`
 5. Include validation rules (schema_match, artifact_exists at minimum)
 6. Mark uncertain columns as `required: false` — agents will refine
+7. **If `.agent-team/artifacts/data-profile.yaml` is available:** use the
+   actual column names and types from the profile instead of inferring them
+   from the PRD. Mark every column sourced from the profile as
+   `required: true`. For profiled tables, also propagate `null_rate`,
+   `distinct_count`, and `row_count` into the contract as informational
+   hints so consuming agents can plan accordingly.
 
 ## Step 7: Write .agent-team/ Directory
 
