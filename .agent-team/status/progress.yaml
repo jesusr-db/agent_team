@@ -1,0 +1,84 @@
+current_state:
+  phase: 0
+  step: read_phase_config
+  substep: in_progress
+
+phases:
+  - phase: 0
+    name: Planning
+    status: in_progress
+    agents:
+      - name: docs-domain-sme
+        status: pending
+    steps:
+      read_phase_config: in_progress
+      resolve_contracts: pending
+      dispatch_agents: pending
+      await_agents: pending
+      merge_worktrees: pending
+      qa_gate: pending
+      update_progress: pending
+
+  - phase: 1
+    name: Data Ingestion
+    status: pending
+    agents:
+      - name: data-engineer
+        status: pending
+    steps:
+      read_phase_config: pending
+      resolve_contracts: pending
+      dispatch_agents: pending
+      await_agents: pending
+      merge_worktrees: pending
+      qa_gate: pending
+      update_progress: pending
+
+  - phase: 2
+    name: RAG + App
+    status: pending
+    agents:
+      - name: genai-architect
+        status: pending
+      - name: app-developer
+        status: pending
+    steps:
+      read_phase_config: pending
+      resolve_contracts: pending
+      dispatch_agents: pending
+      await_agents: pending
+      merge_worktrees: pending
+      qa_gate: pending
+      update_progress: pending
+
+  - phase: 3
+    name: Integration
+    status: pending
+    agents:
+      - name: app-developer
+        status: pending
+    steps:
+      read_phase_config: pending
+      resolve_contracts: pending
+      dispatch_agents: pending
+      await_agents: pending
+      merge_worktrees: pending
+      qa_gate: pending
+      update_progress: pending
+
+  - phase: 4
+    name: Deploy + Validate
+    status: pending
+    agents:
+      - name: deploy-engineer
+        status: pending
+      - name: qa-engineer
+        status: pending
+    steps:
+      read_phase_config: pending
+      resolve_contracts: pending
+      dispatch_agents: pending
+      await_agents: pending
+      merge_worktrees: pending
+      qa_gate: pending
+      update_progress: pending
