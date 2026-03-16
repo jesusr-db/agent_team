@@ -1,0 +1,53 @@
+type: generator
+output_format: agent-definition-md
+description: >
+  Generates a novel specialist agent definition for capabilities
+  not covered by curated templates. Used when /create-team identifies
+  a capability gap that requires domain-specific expertise.
+
+generator_prompt: |
+  The PRD for "{{project_description}}" requires a capability that
+  is not covered by the curated agent templates: "{{capability}}".
+
+  Generate a specialist agent definition as a Markdown file with YAML
+  frontmatter.
+
+  The agent definition MUST follow this exact format:
+
+  ---
+  name: {{capability_slug}}-specialist
+  display_name: {{capability_display}} Specialist
+  model: {{recommended_model}}
+  phase: [{{recommended_phase}}]
+  parallel_group: {{recommended_group}}
+  skills: [{{relevant_skills}}]
+  mcp_tools: [{{relevant_mcp_tools}}]
+  inputs:
+    - contract: domain-playbook
+      from: {{domain_sme_name}}
+  outputs:
+    - contract: {{output_contract_name}}
+      artifacts: [{{output_paths}}]
+  constraints:
+    - {{relevant_constraints}}
+  ---
+
+  Guidelines for the agent prompt:
+  1. Give the specialist a clear, focused role
+  2. Define specific technical stack and tools
+  3. Set clear output requirements with exact file paths
+  4. Include the standard status protocol
+  5. Constrain the specialist to its area of expertise
+
+  Model selection guide:
+  - haiku: Research, search, summarization tasks
+  - sonnet: Implementation, coding, testing tasks
+  - opus: Architecture, design, complex reasoning tasks
+
+  Choose the model that matches the specialist's primary activity.
+
+defaults:
+  model: sonnet
+  phase: [1]
+  skills: []
+  mcp_tools: []
