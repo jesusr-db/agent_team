@@ -3,6 +3,27 @@ name: team-builder
 description: Analyzes a PRD to identify required capabilities and assemble an agent team. Invoked by /create-team.
 ---
 
+## Optional Inputs
+
+**`project_snapshot`** — when provided by the `feature-scoper` skill:
+
+- **Use real names from existing code in contracts:**
+  Use actual table names, column names, endpoint names, and artifact paths
+  discovered from the codebase instead of inferring them from the PRD.
+  These override any schema inferred from PRD text.
+
+- **Skip fully-implemented capability tags:**
+  If a capability tag is already implemented in the existing project
+  (as indicated by `project_snapshot.history.contracts` or the previous
+  manifest), do not generate a new agent or contract for it.
+  Mark it as `status: existing` in the team roster.
+
+- **Reference existing artifacts as read-only contract inputs:**
+  For any producer→consumer contract where the producer artifact already
+  exists in the project, set `access: read-only` on that contract input.
+  This prevents agents from overwriting existing work and signals that the
+  artifact is a stable dependency, not something to regenerate.
+
 # Team Builder
 
 You are assembling a team of AI agents to build a Databricks application.
