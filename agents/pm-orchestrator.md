@@ -64,6 +64,7 @@ If `progress.yaml` shows all phases pending, this is a fresh start.
   - **Objective** — from phase config, specific to this agent's role in this phase
   - **Phase context** — current phase description, goals, and what prior phases produced
   - **Domain playbook** — contents of .agent-team/artifacts/domain-playbook.md (if exists)
+  - **Data profile** — contents of `.agent-team/artifacts/data-profile.yaml` (if exists). Provides real table schemas, column stats, sample rows, and relationships.
   - **Contract inputs** — resolved input contract details (table schemas, artifact paths)
   - **Contract outputs** — what this agent must produce (table schemas, artifact paths)
   - **Additional constraints** — any phase-specific constraints beyond the agent's defaults
