@@ -16,7 +16,10 @@ gates pass, and manage recovery from failures.
 
 ## Your Tools
 
-- **Agent()** tool to dispatch subagents with `isolation: "worktree"` and `model` parameter
+- **Agent()** tool to dispatch subagents:
+  - Curated agents: use `subagent_type` parameter (model/tools from agent definition)
+  - Dynamic agents: use `model` parameter + full prompt (for runtime-generated agents)
+  - Always use `isolation: "worktree"` for all agents
 - **Read/Write/Edit** tools to manage `.agent-team/status/progress.yaml`
 - **Bash** tool for git operations (merge worktree branches)
 - All tools needed to resolve template variables
@@ -54,31 +57,53 @@ If `progress.yaml` shows all phases pending, this is a fresh start.
 
 ### Step 2: resolve_contracts
 - For each agent in this phase, read its `inputs` field
-- For each input contract, read the contract YAML and resolve `{{template_vars}}`
+- For each input contract, read the contract YAML
 - Read upstream agent artifacts (e.g., domain-playbook.md from Phase 0)
-- Build the full prompt for each agent by resolving all `{{variables}}`:
-  - `{{project_description}}` — from team manifest
-  - `{{objective}}` — from phase config + agent definition
-  - `{{phase_context}}` — current phase description and goals
-  - `{{domain_playbook}}` — contents of .agent-team/artifacts/domain-playbook.md
-  - `{{contract_inputs}}` — resolved input contract details
-  - `{{constraints}}` — from agent definition + phase-specific constraints
-  - `{{agent_name}}` — the agent's name field
-  - `{{qa_scope}}` — QA scope for this phase (QA agent only)
+- Build the dynamic context to pass as the `prompt` parameter:
+  - **Project description** — from team manifest
+  - **Objective** — from phase config, specific to this agent's role in this phase
+  - **Phase context** — current phase description, goals, and what prior phases produced
+  - **Domain playbook** — contents of .agent-team/artifacts/domain-playbook.md (if exists)
+  - **Contract inputs** — resolved input contract details (table schemas, artifact paths)
+  - **Contract outputs** — what this agent must produce (table schemas, artifact paths)
+  - **Additional constraints** — any phase-specific constraints beyond the agent's defaults
+  - **QA scope** — for QA agent only, the progressive QA checklist for this phase
+- NOTE: The agent's base prompt (role, technical stack, skills, output requirements,
+  status protocol) is baked into its registered agent definition. You only pass the
+  dynamic, phase-specific context here.
 - **Checkpoint:** Write step status
 
 ### Step 3: dispatch_agents
 - Group agents by `parallel_group`
-- For each group, dispatch ALL agents in a single message:
+- For each group, dispatch ALL agents in a single message
+- For **curated agents** (registered in plugin), use `subagent_type`:
   ```
   Agent(
     description: "<agent_name> - Phase N <phase_name>"
-    model: "<from agent definition>"
-    prompt: "<fully resolved agent prompt>"
+    subagent_type: "<agent_name>"
+    prompt: "<dynamic context only: project description, objective, phase context,
+             domain playbook, contract inputs/outputs, constraints>"
     isolation: "worktree"
     run_in_background: true  # for all but the last in the group
   )
   ```
+  The agent's model, tools, and base prompt come from its registered definition.
+  You only pass the phase-specific dynamic context in `prompt`.
+
+- For **dynamic agents** (generated at runtime, not registered), use general-purpose:
+  ```
+  Agent(
+    description: "<agent_name> - Phase N <phase_name>"
+    model: "<from .agent-team/agents/<name>.md frontmatter>"
+    prompt: "<full agent prompt from .agent-team/agents/<name>.md with dynamic context resolved>"
+    isolation: "worktree"
+    run_in_background: true
+  )
+  ```
+  Dynamic agents are not registered in the plugin, so their full prompt must be
+  provided. Read the agent definition from `.agent-team/agents/<name>.md` and
+  resolve all template variables before dispatching.
+
 - **Checkpoint:** Write per-agent status as `dispatched` with `worktree_branch`
 - Commit progress.yaml after all dispatches
 
