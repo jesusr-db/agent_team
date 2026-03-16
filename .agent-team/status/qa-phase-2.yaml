@@ -1,0 +1,52 @@
+phase: 2
+name: RAG + App
+result: PASS
+attempt: 1
+timestamp: "2026-03-16"
+
+checks:
+  - name: code_quality
+    description: Code quality in src/genai/ and src/app/
+    result: PASS
+    details: >
+      rag_chain.py: well-structured RAG chain with retrieve/format/generate pattern,
+      proper docstrings, type hints, lazy SDK client initialization.
+      config.py: clean constants with environment variable overrides.
+      main.py: FastAPI app with Pydantic request/response models, error handling,
+      health endpoint, CORS middleware.
+      Frontend: clean React components with TypeScript types, API layer, CSS.
+
+  - name: contract_endpoint_shape_match
+    description: genai-to-app contract endpoint shape match
+    result: PASS
+    details: >
+      Serving handler returns {"choices": [{"message": {"role", "content"},
+      "sources": [...]}]}. Backend ChatResponse Pydantic model matches. Frontend
+      TypeScript types match. Request shape {"messages": [{"role", "content"}]}
+      is consistent across all three layers. Matches genai-to-app.yaml contract
+      exactly.
+
+  - name: serving_config_exists
+    description: resources/serving.yml exists and valid
+    result: PASS
+    details: >
+      Serving endpoint config for qa-chatbot-rag uses ${var.catalog} and
+      ${var.schema} variables. Vector search config also present in
+      resources/vector_search.yml with Delta Sync index definition.
+
+  - name: frontend_backend_importable
+    description: Frontend and backend importable without errors
+    result: PASS
+    details: >
+      Backend: FastAPI app with proper imports, Pydantic models validate.
+      Frontend: TypeScript types, React components, and API layer consistent.
+      Vite config with proxy for /chat and /health endpoints.
+
+  - name: tests_exist
+    description: tests/genai/ and tests/app/ exist
+    result: PASS
+    details: >
+      tests/genai/test_rag_chain.py: 14 tests covering format_context,
+      model_serving_handler, answer_question, and prompt template.
+      tests/app/test_backend.py: 9 tests covering health endpoint, chat
+      endpoint (basic, history, errors, fallback), and response contract.
