@@ -1,0 +1,10 @@
+{
+  "name": "agent-team",
+  "description": "Dynamically assemble and orchestrate AI agent teams to build Databricks applications end-to-end. Use /create-team to analyze a PRD and assemble a team, then /start-team to execute.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Databricks Field Engineering"
+  },
+  "skills": "./skills/",
+  "commands": "./commands/"
+}
