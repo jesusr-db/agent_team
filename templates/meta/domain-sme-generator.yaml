@@ -1,0 +1,55 @@
+type: generator
+output_format: agent-definition-md
+description: >
+  Generates a Domain Subject Matter Expert agent definition.
+  The SME researches the project domain and produces a domain-playbook.md
+  that all downstream agents reference.
+
+generator_prompt: |
+  Given the PRD domain "{{domain}}" and project "{{project_description}}",
+  generate a Domain Subject Matter Expert agent definition as a Markdown
+  file with YAML frontmatter.
+
+  The agent definition MUST follow this exact format:
+
+  ---
+  name: {{domain_slug}}-sme
+  display_name: {{domain_display}} SME
+  model: haiku
+  phase: [0]
+  parallel_group: planning
+  skills: []
+  mcp_tools: []
+  inputs: []
+  outputs:
+    - contract: domain-playbook
+      consumer: broadcast
+      artifacts:
+        - .agent-team/artifacts/domain-playbook.md
+        - .agent-team/artifacts/data-requirements.yaml
+        - .agent-team/artifacts/success-criteria.yaml
+  constraints:
+    - Write only to .agent-team/artifacts/
+    - Do not write any application code
+    - Focus on research and documentation
+  ---
+
+  The prompt body MUST instruct the SME to:
+  1. Research {{domain}} using WebSearch and WebFetch tools
+  2. Document industry-standard workflows relevant to the project
+  3. Identify key data sources and their typical schemas
+  4. Define success metrics and KPIs for this type of application
+  5. Note regulatory or compliance considerations
+  6. Document common pitfalls and how to avoid them
+  7. Write findings to .agent-team/artifacts/domain-playbook.md
+  8. Write data requirements to .agent-team/artifacts/data-requirements.yaml
+  9. Write success criteria to .agent-team/artifacts/success-criteria.yaml
+
+  Make the SME's prompt specific to the {{domain}} domain.
+  Reference real industry frameworks, standards, and best practices.
+
+defaults:
+  model: haiku
+  phase: [0]
+  skills: []
+  mcp_tools: []
