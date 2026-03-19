@@ -50,6 +50,8 @@ Map each PRD requirement to one or more capability tags:
 
 | Capability Tag | Triggered By |
 |---------------|-------------|
+| data-profiling | Existing data sources, tables, or schemas mentioned; --catalog/--schema provided; any ETL/ML/RAG requirement (always profile before building) |
+| catalog-exploration | PRD references existing catalog/schema structure or asks to understand the data |
 | data-ingestion | Any data loading, ETL, file processing |
 | data-transformation | Data cleaning, feature engineering, aggregation |
 | etl | Batch or streaming data pipelines |
@@ -78,6 +80,20 @@ Map each PRD requirement to one or more capability tags:
 For each capability tag, check if a curated template in `templates/core/` covers it.
 Read each template's `capabilities` field to match.
 
+**`data-discovery` selection rule:** Include `data-discovery` whenever ANY of
+these conditions is true:
+- `data-profiling` or `catalog-exploration` capability tag is present
+- `--catalog/--schema` flags were passed to `/create-team`
+- The PRD mentions existing tables, schemas, or data sources by name
+- Any of these capability tags are present: `data-ingestion`, `data-transformation`,
+  `etl`, `ml-training`, `genai-rag`, `vector-search`, `embeddings`
+  (rationale: any agent that consumes data benefits from real schema context)
+
+When selected, `data-discovery` always runs in **Phase 0**, before all
+data-producing agents. Its outputs (`.agent-team/artifacts/data-profile.yaml`,
+`sample_data/`, `data-dictionary.md`) are broadcast to ALL downstream agents
+as read-only inputs — add a `broadcast` contract for it (see Step 6).
+
 When `ui-design`, `ux-workflow`, `wireframing`, or `frontend-planning` is matched,
 select the `ui-ux-analyst` template. Only select `ui-ux-analyst` when a domain SME
 agent is also present on the team (it depends on the domain playbook as required input).
@@ -99,11 +115,14 @@ For capability tags not covered by any curated template:
 ## Step 5: Design Phase Structure
 
 Apply the phase structure algorithm:
-1. Domain SME agents → Phase 0 (no dependencies)
-2. Data-producing agents → Phase 1 (depend on domain playbook)
+1. `data-discovery` + Domain SME agents → Phase 0 (no dependencies, run in parallel if both present)
+2. Data-producing agents → Phase 1 (depend on data-profile.yaml from Phase 0)
 3. Agents consuming data outputs → Phase 2 (depend on Phase 1)
 4. Integration work → Phase 3 (depends on all producers)
 5. Deploy → Phase 4 (always last)
+
+`data-discovery` and domain SME agents share Phase 0 and can run in the same
+`parallel_group` — neither depends on the other.
 
 Within each phase, group agents that don't depend on each other into
 the same `parallel_group`.
@@ -125,6 +144,19 @@ For each producer→consumer edge:
    `required: true`. For profiled tables, also propagate `null_rate`,
    `distinct_count`, and `row_count` into the contract as informational
    hints so consuming agents can plan accordingly.
+
+**`data-discovery` broadcast contract** (add whenever `data-discovery` is on the team):
+- Producer: `data-discovery`, Consumer: `broadcast` (all agents receive it)
+- Artifacts:
+  - `.agent-team/artifacts/data-profile.yaml` — machine-readable profile (schema, stats, quality flags)
+  - `.agent-team/artifacts/sample_data/` — per-table CSV files (20 rows each)
+  - `.agent-team/artifacts/data-dictionary.md` — human-readable reference
+- `access: read-only` for all consumers
+- `consumed_in_phase: 1` — all Phase 1+ agents receive it as context
+- Validation: `artifact_exists` for all three paths
+- When resolving contracts for any Phase 1+ agent, PM orchestrator must include
+  the data-profile contents in the agent's prompt context (via `resolve_contracts`
+  Step 2 in pm-orchestrator). This replaces PRD-inferred schemas with ground truth.
 
 **`ui-to-app` contract pattern** (add when `ui-ux-analyst` is on the team):
 - Producer: `ui-ux-analyst`, Consumer: `app-developer`

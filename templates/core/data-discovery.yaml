@@ -1,0 +1,34 @@
+name: data-discovery
+display_name: Data Discovery Agent
+description: >
+  Deep-profiles all data sources — schema, column stats, value distributions,
+  temporal patterns, data quality flags, sample CSVs, and data dictionary.
+  Runs in Phase 0 so all downstream agents have real data context.
+model: sonnet
+registered_agent: agents/data-discovery.md
+typical_phases: [0, 1]
+
+capabilities:
+  - data-profiling
+  - catalog-exploration
+  - schema-discovery
+  - sample-data
+  - data-quality
+
+skills:
+  - data-analyzer
+  - databricks-unity-catalog
+  - databricks-query
+
+mcp_tools:
+  - databricks-mcp:execute_sql
+  - databricks-mcp:get_table_details
+  - databricks-mcp:manage_uc_objects
+
+output_paths:
+  - .agent-team/artifacts/data-profile.yaml
+  - .agent-team/artifacts/sample_data/
+  - .agent-team/artifacts/data-dictionary.md
+
+# Broadcast: every downstream agent consumes the data profile
+broadcast_outputs: true

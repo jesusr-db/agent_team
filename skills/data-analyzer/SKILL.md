@@ -1,6 +1,10 @@
 ---
 name: data-analyzer
-description: Profiles existing Unity Catalog tables — schema metadata, column stats, sample rows, and inferred relationships. Invoked by /create-team when --catalog/--schema flags are provided or PRD references existing tables.
+description: >
+  Profiles Unity Catalog tables — schema metadata, column stats, value
+  distributions, temporal analysis, data quality flags, sample rows, and
+  inferred relationships. Invoked by the data-discovery agent (Phase 0) and
+  by /create-team when --catalog/--schema flags are provided.
 ---
 
 # Data Analyzer
@@ -79,7 +83,57 @@ SELECT * FROM {catalog}.{schema}.{table} LIMIT 5
 
 Capture up to 5 rows as a list of dictionaries `{column: value}`.
 
-### 2d: Assign table status
+### 2d: Value distributions (categorical columns)
+
+For any column where `distinct_count <= 50` and type is STRING, BOOLEAN,
+or an integer type with low cardinality:
+
+```sql
+SELECT
+  CAST({col} AS STRING)   AS value,
+  COUNT(*)                AS freq,
+  ROUND(COUNT(*) / SUM(COUNT(*)) OVER (), 4) AS pct
+FROM {catalog}.{schema}.{table}
+GROUP BY {col}
+ORDER BY freq DESC
+LIMIT 20
+```
+
+Record as `top_values: [{value, count, pct}]` on the column entry.
+Skip this step for columns with `distinct_count > 50`.
+
+### 2e: Temporal analysis (date/timestamp columns)
+
+For any column with type DATE, TIMESTAMP, or TIMESTAMP_NTZ:
+
+```sql
+SELECT
+  MIN({col})                                         AS min_date,
+  MAX({col})                                         AS max_date,
+  DATEDIFF(day, MIN({col}), MAX({col}))              AS date_range_days,
+  COUNT(DISTINCT DATE_TRUNC('day', {col}))           AS distinct_days,
+  COUNT(DISTINCT DATE_TRUNC('month', {col}))         AS distinct_months
+FROM {catalog}.{schema}.{table}
+```
+
+Record as `temporal: {min_date, max_date, date_range_days, distinct_days, distinct_months}`.
+
+### 2f: Data quality flags
+
+After collecting stats, evaluate each column and assign quality flags:
+
+| Flag | Condition |
+|------|-----------|
+| `high_nulls` | null_rate > 0.30 |
+| `mostly_nulls` | null_rate > 0.70 |
+| `constant` | distinct_count == 1 |
+| `all_unique` | distinct_count == row_count |
+| `low_cardinality` | distinct_count <= 10 |
+| `high_cardinality` | distinct_count > row_count * 0.9 |
+
+Record as `quality_flags: [list]` on each column entry.
+
+### 2g: Assign table status
 
 | Condition | Status |
 |-----------|--------|
@@ -99,8 +153,7 @@ Scan all profiled tables for potential foreign-key style relationships:
 2. **Shared column names** — for columns that appear in more than one table
    with the same name and compatible types (e.g., `customer_id` in both
    `orders` and `customers`), record an inferred relationship with
-   `confidence: high` when one side is a likely primary key (high distinct
-   count relative to row count).
+   `confidence: high` when one side is a likely primary key (`all_unique` flag).
 
 3. **Declared foreign keys** — if Unity Catalog metadata surfaces explicit
    foreign key constraints, mark those as `type: foreign_key` with
@@ -130,6 +183,17 @@ tables:
         distinct_count: <integer>
         min: <value or null>
         max: <value or null>
+        top_values:          # present only for categorical columns (distinct_count <= 50)
+          - value: <string>
+            count: <integer>
+            pct: <float>
+        temporal:            # present only for date/timestamp columns
+          min_date: <date string>
+          max_date: <date string>
+          date_range_days: <integer>
+          distinct_days: <integer>
+          distinct_months: <integer>
+        quality_flags: <list of flag strings, empty list if none>
     sample_rows:
       - {col1: val1, col2: val2}
     tags: {key: value}
@@ -144,6 +208,23 @@ relationships:
 
 Create the `.agent-team/artifacts/` directory if it does not already exist.
 
+## Step 5: Write Sample Data CSVs
+
+For each table with `status: profiled` or `status: partial`, write a CSV file:
+
+Path: `.agent-team/artifacts/sample_data/{catalog}__{schema}__{table}.csv`
+
+```sql
+SELECT * FROM {catalog}.{schema}.{table} LIMIT 20
+```
+
+Format:
+- First row: comma-separated column names
+- Subsequent rows: data values (quote strings containing commas)
+- If the table is empty: write header row only, plus a comment row `# table is empty`
+
+Create `.agent-team/artifacts/sample_data/` if it does not exist.
+
 ## Failure Modes
 
 | Failure | Handling |
@@ -153,3 +234,5 @@ Create the `.agent-team/artifacts/` directory if it does not already exist.
 | Permission denied | Mark table `status: error`, set `error_message: "Permission denied"` |
 | Slow query (>30s) | Mark table `status: partial`, set `error_message: "Profiling timed out after 30s"`. Proceed to sample-rows step regardless. |
 | Too many tables | Profile up to `max_tables`, mark remaining as `status: skipped`. Emit warning (see Step 1). |
+| Value distribution query fails | Skip step 2d for that column; record `top_values: null` |
+| Temporal query fails | Skip step 2e for that column; record `temporal: null` |

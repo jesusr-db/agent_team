@@ -179,6 +179,18 @@ Execution Plan:
 - App-developer codes against wireframes and component contract
 - Agent: `agents/ui-ux-analyst.md`, Template: `templates/core/ui-ux-analyst.yaml`
 
+### Feature 5: Deep Data Discovery Agent
+- New curated agent: `data-discovery` (sonnet) — runs Phase 0, before all data-producing agents
+- **Always selected** when any data-related capability tag is present (`data-ingestion`, `etl`, `genai-rag`, `ml-training`, etc.) — no flags required
+- Outputs (broadcast to ALL downstream agents):
+  - `.agent-team/artifacts/data-profile.yaml` — extended machine-readable profile
+  - `.agent-team/artifacts/sample_data/{catalog}__{schema}__{table}.csv` — 20 rows per table
+  - `.agent-team/artifacts/data-dictionary.md` — human-readable reference doc
+- Invokes `data-analyzer` skill, then deepens with: value distributions (top 20 values for low-cardinality columns), temporal analysis (date range, distinct days/months), data quality flags (`high_nulls`, `constant`, `all_unique`, `low_cardinality`, etc.)
+- Enhanced `data-analyzer` skill: added Steps 2d–2g (value distribution, temporal analysis, quality flags) and Step 5 (CSV export)
+- `team-builder` updated: `data-discovery` added to Phase 0 alongside domain SME (parallel); broadcast contract wires its outputs to all Phase 1+ agents
+- Agent: `agents/data-discovery.md`, Template: `templates/core/data-discovery.yaml`
+
 ### Feature 4: DAB Automation — Artifact Discovery + Setup Job
 - `deploy-engineer` now runs in 4 explicit steps: Artifact Discovery → Bundle Manifest → Setup Job → Validate & Deploy
 - **Step 1 (Artifact Discovery):** globs `resources/` for all agent-produced pipelines, jobs, apps, endpoints before touching any files
