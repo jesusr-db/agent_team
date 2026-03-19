@@ -1,6 +1,8 @@
 name: deploy-engineer
 display_name: Deploy Engineer
-description: Finalizes DAB configuration and deploys to Databricks workspace
+description: >
+  Discovers all agent-produced resources, generates setup_job, finalizes
+  DAB bundle manifest, validates config, and deploys to Databricks workspace
 model: sonnet
 registered_agent: agents/deploy-engineer.md
 typical_phases: [4]
@@ -9,18 +11,23 @@ capabilities:
   - deployment
   - infrastructure
   - dab-configuration
+  - artifact-discovery
+  - setup-job-generation
 
 skills:
   - asset-bundles
   - databricks-config
   - databricks-query
+  - databricks-jobs
 
 mcp_tools:
   - databricks-mcp:execute_sql
   - databricks-mcp:get_best_warehouse
   - databricks-mcp:get_best_cluster
   - databricks-mcp:get_cluster_status
+  - databricks-mcp:manage_jobs
 
 output_paths:
   - databricks.yml
   - resources/
+  - resources/setup_job.yml

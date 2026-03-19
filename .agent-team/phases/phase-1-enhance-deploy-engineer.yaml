@@ -1,0 +1,41 @@
+id: 1
+name: enhance-deploy-engineer
+description: >
+  Enhance the deploy-engineer agent definition and template to add artifact
+  discovery, mandatory setup_job generation, and prescriptive DAB bundle
+  structure. This is a plugin-level change (modifying agents/ and templates/
+  files), not a Databricks application change.
+
+agents:
+  - name: plugin-engineer
+    type: dynamic
+    parallel_group: 1
+
+inputs:
+  - path: agents/deploy-engineer.md
+    access: read-modify
+    description: Primary target — agent definition to be enhanced
+  - path: templates/core/deploy-engineer.yaml
+    access: read-modify
+    description: Template to add new capabilities and output_paths
+  - path: skills/team-builder/SKILL.md
+    access: read-only
+    description: Context on how deploy-engineer fits into the build flow
+
+outputs:
+  - path: agents/deploy-engineer.md
+    description: Enhanced agent with artifact discovery + setup_job mandate
+  - path: templates/core/deploy-engineer.yaml
+    description: Updated with setup-job-generation capability
+
+qa_scope:
+  phase: 1
+  checks:
+    - type: artifact_exists
+      description: agents/deploy-engineer.md contains 'setup_job' section
+    - type: artifact_exists
+      description: agents/deploy-engineer.md contains 'Artifact Discovery' section
+    - type: artifact_exists
+      description: templates/core/deploy-engineer.yaml has 'setup-job-generation' capability
+    - type: artifact_exists
+      description: templates/core/deploy-engineer.yaml has 'resources/setup_job.yml' in output_paths

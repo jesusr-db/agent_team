@@ -1,0 +1,63 @@
+id: 2
+name: qa-validate
+description: >
+  Validate that the enhanced deploy-engineer agent definition is coherent,
+  complete, and consistent with the rest of the plugin. Check that all
+  new sections are present, bundle variable usage is consistent, and the
+  setup_job contract structure is valid.
+
+agents:
+  - name: qa-engineer
+    type: curated
+    parallel_group: 1
+
+inputs:
+  - path: agents/deploy-engineer.md
+    access: read-only
+    description: Enhanced agent to validate
+  - path: templates/core/deploy-engineer.yaml
+    access: read-only
+    description: Updated template to validate
+  - path: agents/pm-orchestrator.md
+    access: read-only
+    description: Cross-check that PM orchestrator's scaffold step aligns with new bundle structure
+  - path: skills/team-builder/SKILL.md
+    access: read-only
+    description: Validate that team-builder still correctly wires deploy-engineer outputs
+
+qa_scope:
+  phase: 2
+  checks:
+    # Structure checks
+    - type: artifact_exists
+      description: >
+        agents/deploy-engineer.md has four explicit steps:
+        1) Artifact Discovery, 2) Bundle Manifest, 3) Setup Job, 4) Validation
+    - type: artifact_exists
+      description: >
+        agents/deploy-engineer.md mentions 'resources/setup_job.yml' as mandatory output
+    - type: artifact_exists
+      description: >
+        agents/deploy-engineer.md uses bundle variable syntax (${var.}, ${bundle.}, ${resources.})
+        and not hardcoded values
+
+    # Template consistency
+    - type: artifact_exists
+      description: >
+        templates/core/deploy-engineer.yaml lists 'setup-job-generation' in capabilities
+    - type: artifact_exists
+      description: >
+        templates/core/deploy-engineer.yaml lists 'databricks-jobs' in skills
+    - type: artifact_exists
+      description: >
+        templates/core/deploy-engineer.yaml lists 'resources/setup_job.yml' in output_paths
+
+    # Cross-agent consistency
+    - type: code_references
+      description: >
+        setup_job task structure uses ${resources.<type>.<name>.id} references
+        that are compatible with how data-engineer and genai-architect name their resources
+    - type: code_references
+      description: >
+        Artifact discovery globs match actual resource file naming patterns used by
+        data-engineer (resources/pipelines*.yml) and app-developer (resources/apps*.yml)

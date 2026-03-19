@@ -1,0 +1,33 @@
+name: plugin-engineer-to-qa
+producer: plugin-engineer
+consumer: qa-engineer
+
+artifacts:
+  - path: agents/deploy-engineer.md
+    description: >
+      Enhanced deploy-engineer agent definition. Must contain:
+      - Artifact Discovery section with glob patterns for all resource types
+      - Bundle Manifest section with full databricks.yml structure
+      - Setup Job section marked MANDATORY with task dependency chain
+      - Validation section requiring 'databricks bundle validate'
+      - Updated Constraints section reflecting new mandatory steps
+
+  - path: templates/core/deploy-engineer.yaml
+    description: >
+      Updated template. Must include:
+      - setup-job-generation in capabilities list
+      - artifact-discovery in capabilities list
+      - databricks-jobs in skills list
+      - resources/setup_job.yml in output_paths
+
+validation:
+  - type: artifact_exists
+    description: Both target files exist and have been modified
+  - type: schema_match
+    description: >
+      deploy-engineer.md contains all four numbered steps and the word
+      'setup_job' appears in both Output Requirements and Constraints
+  - type: schema_match
+    description: >
+      templates/core/deploy-engineer.yaml contains 'setup-job-generation'
+      as a capability and 'resources/setup_job.yml' in output_paths

@@ -1,0 +1,45 @@
+feature: dab-setup-job-automation
+mode: incremental
+created_at: "2026-03-19"
+
+phases:
+  - id: 1
+    name: enhance-deploy-engineer
+    status: pending
+    agents:
+      plugin-engineer:
+        status: pending
+        worktree_branch: null
+        merged: false
+    steps:
+      read_phase_config: pending
+      resolve_contracts: pending
+      dispatch_agents: pending
+      await_agents: pending
+      merge_worktrees: pending
+      qa_gate: pending
+      update_progress: pending
+      introspection: pending
+
+  - id: 2
+    name: qa-validate
+    status: pending
+    agents:
+      qa-engineer:
+        status: pending
+        worktree_branch: null
+        merged: false
+    steps:
+      read_phase_config: pending
+      resolve_contracts: pending
+      dispatch_agents: pending
+      await_agents: pending
+      merge_worktrees: pending
+      qa_gate: pending
+      update_progress: pending
+      introspection: pending
+
+current_state:
+  phase: 1
+  step: read_phase_config
+  last_updated: "2026-03-19"

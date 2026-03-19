@@ -179,6 +179,15 @@ Execution Plan:
 - App-developer codes against wireframes and component contract
 - Agent: `agents/ui-ux-analyst.md`, Template: `templates/core/ui-ux-analyst.yaml`
 
+### Feature 4: DAB Automation — Artifact Discovery + Setup Job
+- `deploy-engineer` now runs in 4 explicit steps: Artifact Discovery → Bundle Manifest → Setup Job → Validate & Deploy
+- **Step 1 (Artifact Discovery):** globs `resources/` for all agent-produced pipelines, jobs, apps, endpoints before touching any files
+- **Step 2 (Bundle Manifest):** prescriptive `databricks.yml` structure: `include: resources/*.yml`, proper `targets:` (dev/staging/prod), `${var.*}` references only — never hardcoded values
+- **Step 3 (Setup Job, MANDATORY):** always generates `resources/setup_job.yml` — tasks chain `init_schema → run_{{pipeline}} → warmup_{{endpoint}} → smoke_test` using `${resources.<type>.<name>.id}` bundle refs; omits tasks for resources not discovered in Step 1
+- **Step 4 (Validate & Deploy):** `databricks bundle validate` must pass before reporting DONE; then `databricks bundle deploy --target dev`
+- Template updated: added `artifact-discovery`, `setup-job-generation` capabilities; `databricks-jobs` skill; `resources/setup_job.yml` to output_paths; `mcp__databricks-mcp__manage_jobs` tool
+- Agent: `agents/deploy-engineer.md`, Template: `templates/core/deploy-engineer.yaml`
+
 ### Introspection Loop
 - PM orchestrator captures learnings after each phase (Step 9)
 - Writes to `CLAUDE.md` under `## Introspection` section

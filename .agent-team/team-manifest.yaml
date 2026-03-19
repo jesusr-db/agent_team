@@ -1,0 +1,80 @@
+mode: incremental
+feature_description: >
+  Enhance deploy-engineer to ensure all generated project artifacts are deployable
+  via Databricks Asset Bundle (DAB) or orchestrated through a setup_job. Adds:
+  artifact discovery from prior agent outputs, mandatory setup_job generation,
+  prescriptive bundle structure, and bundle validation before handoff.
+
+previous_manifest: null
+
+project_snapshot:
+  type: claude-code-plugin  # not a standard Databricks app
+  structure:
+    plugin_agents:
+      - agents/deploy-engineer.md      # primary target
+      - agents/pm-orchestrator.md
+      - agents/qa-engineer.md
+      - agents/data-engineer.md
+      - agents/data-scientist.md
+      - agents/genai-architect.md
+      - agents/app-developer.md
+      - agents/ui-ux-analyst.md
+    templates:
+      - templates/core/deploy-engineer.yaml  # secondary target
+      - templates/core/qa-engineer.yaml
+      - templates/core/data-engineer.yaml
+      - templates/core/genai-architect.yaml
+      - templates/core/app-developer.yaml
+      - templates/core/data-scientist.yaml
+      - templates/core/ui-ux-analyst.yaml
+    skills:
+      - skills/team-builder/SKILL.md   # may need minor update (setup_job contract)
+      - skills/feature-scoper/SKILL.md
+      - skills/phase-planner/SKILL.md
+      - skills/data-analyzer/SKILL.md
+    commands:
+      - commands/create-team.md
+      - commands/start-team.md
+      - commands/add-feature.md
+    src_dirs: []      # plugin has no src/
+    resources: []     # plugin has no resources/
+    dab_config: null  # plugin itself has no databricks.yml
+  history:
+    original_team: null
+    introspection: null
+    contracts: null
+    known_issues: []
+  architecture:
+    deploy_engineer_current:
+      capabilities: [deployment, infrastructure, dab-configuration]
+      output_paths: [databricks.yml, resources/]
+      gaps:
+        - no artifact discovery step (scanning prior agent outputs)
+        - no setup_job generation mandate
+        - no prescriptive bundle manifest structure
+        - validate runs but no explicit artifact-wiring before validate
+    pm_orchestrator_current:
+      note: >
+        Scaffolds DAB project structure (databricks.yml, src/, resources/) at
+        startup — but doesn't define what resources must go in the bundle or
+        generate setup_job. Deploy-engineer is expected to finalize it.
+
+agents:
+  - name: plugin-engineer
+    type: dynamic          # not a registered curated agent
+    model: sonnet
+    definition: .agent-team/agents/plugin-engineer.md
+  - name: qa-engineer
+    type: curated
+    registered_agent: agents/qa-engineer.md
+    model: sonnet
+
+phases:
+  - id: 1
+    name: enhance-deploy-engineer
+    agents: [plugin-engineer]
+    parallel_groups: [[plugin-engineer]]
+  - id: 2
+    name: qa-validate
+    agents: [qa-engineer]
+    parallel_groups: [[qa-engineer]]
