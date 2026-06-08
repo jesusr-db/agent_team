@@ -41,12 +41,12 @@ For each contract in scope:
 - [ ] App loads and basic smoke test passes
 
 ### Journey Validation (Phase 4 — app teams only)
-Run only when the PM provides an `app_url` (i.e. the team deployed an app) and
-`.agent-team/artifacts/user-journeys.yaml` exists.
+Run only when the PM-provided `app_url` is non-null (i.e. the team deployed an app)
+and `.agent-team/artifacts/user-journeys.yaml` exists.
 
-- [ ] Invoke the `app-validation-loop` skill
-- [ ] Read `.agent-team/artifacts/user-journeys.yaml` (per `lib/journey-schema.yaml`)
-      and the `app_url` / `app_resource_name` from the dispatch context
+- [ ] Invoke the `app-validation-loop` skill, passing the `app_url` and
+      `app_resource_name` from the dispatch context (the skill reads
+      `.agent-team/artifacts/user-journeys.yaml` itself, per `lib/journey-schema.yaml`)
 - [ ] Drive each journey in order, capturing dual-channel evidence (UI screenshot
       + final text, and backend `databricks apps logs <app_resource_name>`)
 - [ ] For each journey, assign a verdict: PASS | PARTIAL | FAIL, with severity
@@ -54,7 +54,10 @@ Run only when the PM provides an `app_url` (i.e. the team deployed an app) and
       reproduction, evidence, and the `maps_to` criterion it validates
 - [ ] Write the per-journey results to
       `.agent-team/status/journey-test-results-phase-4.md`
-- [ ] Surface any FAIL/PARTIAL into the QA status `checks` so the PM can act
+- [ ] Record one summary entry per journey in the QA status `checks`
+      (`name`: journey id, `status`: PASS/FAIL, `details`: one-line with severity +
+      `maps_to`). Full per-journey detail lives in the results file above; the PM
+      reads `checks` to decide the gate.
 
 Do NOT modify source code to fix a failing journey — report it. The PM
 orchestrator dispatches the appropriate fix agent and re-runs the suite. You may
@@ -69,6 +72,8 @@ re-run a journey within this pass to rule out transient/cold-start flakiness.
 ## Output Requirements
 - Write validation results to `.agent-team/status/qa-phase-{{phase}}.yaml`
 - Include: status (PASS/FAIL), checks (list with name/status/details), recommendations
+- In Phase 4 with journeys: also write `.agent-team/status/journey-test-results-phase-4.md`
+  and list it in the status `artifacts`
 
 ## Constraints
 - Do not modify source code — only read and validate
