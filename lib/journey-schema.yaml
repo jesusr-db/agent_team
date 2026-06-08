@@ -1,0 +1,30 @@
+# Structured user-journey contract.
+# team-builder and feature-scoper write .agent-team/artifacts/user-journeys.yaml
+# in this shape. The app-validation-loop skill (invoked by the QA engineer in
+# Phase 4) reads it and drives each journey against the deployed app.
+#
+# Generated ONLY when the team/feature has a web-app or databricks-app capability.
+
+version: 1
+
+# Top-level key is `journeys`: an ordered list. Drive in listed order.
+journeys:
+  - id: J1                       # short id, unique per file; used for filenames + log correlation
+    name: <human-readable name>
+    persona: <who is performing this journey>
+    goal: <what the user is trying to accomplish>
+    preconditions:              # state/data that must exist before the journey runs
+      - <e.g. "demo dataset loaded", "user authorized for store 42">
+    steps:                      # ordered UI interactions
+      - action: <navigate | click | type | confirm | select | wait>
+        prompt: <verbatim text to send, when action is type/chat; omit otherwise>
+        expected: <what should happen / which backend tool or path should fire>
+    success_criteria: <FALSIFIABLE — a human or grep can check it (e.g. "final message contains a numeric score", "Confirm card appears before tool runs")>
+    failure_risk: <what this journey specifically guards against; also seeds the log filter>
+    maps_to: <PRD success criterion (team-builder) OR feature_description (feature-scoper)>
+
+# Notes for generators:
+# - Prefer 3-5 journeys covering: happy path, multi-step/multi-tool, high-risk
+#   confirmation flow (if any), known-bad input/data, and negative-auth (if any).
+# - Every journey MUST set `maps_to` so coverage is auditable.
+# - feature-scoper APPENDS to an existing file; it must not drop product journeys.
