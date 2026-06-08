@@ -44,6 +44,31 @@ Read the PRD document and extract:
   relationships. This overrides any table structure inferred from PRD text
   alone.
 
+## Step 1.7: Derive User Journeys (app teams only)
+
+If — and only if — the team will include a `web-app` or `databricks-app`
+capability (decided in Step 2/Step 3), derive user journeys that exercise the
+PRD's goal and write them to `.agent-team/artifacts/user-journeys.yaml`.
+
+(If no app capability is present, skip this step — there is no app to drive.)
+
+**Source material:** the PRD's overall goal, the **User interactions** and
+**Success criteria** extracted in Step 1, plus the **Data profile** if available.
+
+**Output format:** follow `lib/journey-schema.yaml` exactly. Produce 3–5 journeys
+covering, where applicable:
+1. Happy single-action path through the most common interaction.
+2. A multi-step / multi-tool path that exercises the core product flow.
+3. A high-risk confirmation flow, if the PRD describes gated/destructive actions.
+4. A known-bad input or known-bad data path (negative path).
+5. A negative-auth path, if the PRD describes authorization boundaries.
+
+Every journey MUST set `success_criteria` (falsifiable) and
+`maps_to: <the PRD success criterion it validates>`.
+
+These journeys are consumed in **Phase 4** by the QA engineer via the
+`app-validation-loop` skill. Note the artifact in the team summary (Step 8).
+
 ## Step 2: Map to Capability Tags
 
 Map each PRD requirement to one or more capability tags:
