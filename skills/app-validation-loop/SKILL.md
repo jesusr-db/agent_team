@@ -187,7 +187,8 @@ them.** Instead:
 4. Write results to `.agent-team/status/journey-test-results-phase-4.md` using the
    findings template, and record a per-journey verdict line
    (`PASS | PARTIAL | FAIL`) with severity (`demo-blocker | intermittent | cosmetic`),
-   verbatim prompt/action, reproduction, and the `maps_to` criterion.
+   verbatim prompt/action, reproduction steps (for PARTIAL/FAIL), and the `maps_to` criterion.
+   (In agent-team mode this path takes precedence over the `docs/journey-test-results-<YYYY-MM-DD>.md` path mentioned in "Synthesizing findings" below, which is for standalone runs.)
 
 **Only fall back to "Deriving journeys from project notes" (below) when
 `.agent-team/artifacts/user-journeys.yaml` is absent.**
