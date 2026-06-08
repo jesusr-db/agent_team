@@ -177,6 +177,16 @@ databricks bundle validate
 databricks bundle deploy --target dev
 ```
 
+After a successful deploy, if the bundle includes an app resource, capture its URL
+so downstream journey validation can drive it:
+```bash
+# Resolve the deployed app URL (app_resource_name is the resource key in resources/apps*.yml)
+databricks bundle summary --target dev -o json | \
+  python3 -c "import json,sys; d=json.load(sys.stdin); apps=d.get('resources',{}).get('apps',{}); [print(k, (v.get('url') or '')) for k,v in apps.items()]"
+```
+Record the resulting URL as `app_url` and the resource key as `app_resource_name`
+in your status file. If there is no app resource, set both to `null`.
+
 If `bundle validate` fails:
 1. Read the error output carefully
 2. Fix the specific resource or variable reference that failed
@@ -210,6 +220,8 @@ artifacts:
   - [any other resources/ files modified]
 bundle_validate: PASS | FAIL
 deploy_target: dev
+app_url: <deployed Databricks App URL, or null if the team has no app>
+app_resource_name: <bundle resource name of the app, or null>
 concerns: []
 blockers: []
 setup_job_tasks: [list of task_keys generated]
