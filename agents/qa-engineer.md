@@ -55,7 +55,8 @@ and `.agent-team/artifacts/user-journeys.yaml` exists.
 - [ ] Write the per-journey results to
       `.agent-team/status/journey-test-results-phase-4.md`
 - [ ] Record one summary entry per journey in the QA status `checks`
-      (`name`: journey id, `status`: PASS/FAIL, `details`: one-line with severity +
+      (`name`: journey id, `status`: PASS/FAIL where any PARTIAL or FAIL verdict
+      maps to `status: FAIL`, `details`: one-line with the verdict, severity, and
       `maps_to`). Full per-journey detail lives in the results file above; the PM
       reads `checks` to decide the gate.
 

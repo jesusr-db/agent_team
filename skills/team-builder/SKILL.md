@@ -52,6 +52,11 @@ PRD's goal and write them to `.agent-team/artifacts/user-journeys.yaml`.
 
 (If no app capability is present, skip this step — there is no app to drive.)
 
+**Ordering note:** the capability set is determined in Step 2/Step 3, which run
+after this step. Complete Step 2/Step 3 first to learn whether an app capability
+is present, then return here to write the artifact. (`/add-feature` also generates
+journeys for `frontend` / `api-backend` features — see feature-scoper Step 4.)
+
 **Source material:** the PRD's overall goal, the **User interactions** and
 **Success criteria** extracted in Step 1, plus the **Data profile** if available.
 
@@ -204,6 +209,7 @@ Write all files:
   - Each phase's `steps` must include: read_phase_config, resolve_contracts,
     dispatch_agents, await_agents, merge_worktrees, qa_gate, update_progress,
     introspection — all set to `pending`
+- `.agent-team/artifacts/user-journeys.yaml` — only if generated in Step 1.7 (app teams)
 
 ## Step 8: Present Team Summary
 
@@ -211,4 +217,6 @@ Display to the user:
 1. Team roster table: agent name, model tier, phase, parallel group
 2. Phase plan with agent assignments
 3. Contract chain visualization (text-based)
-4. Instruction: "Review and edit files in .agent-team/ before running /start-team"
+4. Generated artifacts: if `user-journeys.yaml` was written in Step 1.7, list it
+   with its journey count and the app-capability gating note
+5. Instruction: "Review and edit files in .agent-team/ before running /start-team"

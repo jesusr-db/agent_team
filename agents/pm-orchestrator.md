@@ -187,7 +187,10 @@ For each agent:
 ### Step 7: qa_gate
 - Dispatch QA Engineer agent with the phase's `qa_scope`
 - Read QA results from `.agent-team/status/qa-phase-N.yaml`
-- If **PASS:** Proceed to next phase
+- If **PASS:** Proceed to next phase — **except in Phase 4**, first check
+  `.agent-team/status/journey-test-results-phase-4.md` (if it exists): if any
+  journey shows `FAIL` or `PARTIAL`, treat it as a gate failure and handle it via
+  the **Journey failures (Phase 4)** block below before proceeding.
 - If **FAIL:**
   - Dispatch a fix agent for the specific issues (use the original agent's model)
   - Re-run QA
