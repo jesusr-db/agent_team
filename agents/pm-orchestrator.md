@@ -110,11 +110,12 @@ If `progress.yaml` shows all phases pending, this is a fresh start.
   - **Contract outputs** — what this agent must produce (table schemas, artifact paths)
   - **Additional constraints** — any phase-specific constraints beyond the agent's defaults
   - **QA scope** — for QA agent only, the progressive QA checklist for this phase
-  - **User journeys (Phase 4 QA only)** — if `.agent-team/artifacts/user-journeys.yaml`
-    exists, include its full contents in the QA agent's prompt, plus the deployed
-    `app_url` and `app_resource_name` read from `.agent-team/status/deploy-engineer.yaml`.
-    This mirrors the data-profile injection pattern. If `app_url` is null/absent,
-    tell the QA agent to skip Journey Validation (no app to drive).
+  - **User journeys (Phase 4 QA only)** — pass the deployed `app_url` and
+    `app_resource_name` (read from `.agent-team/status/deploy-engineer.yaml`) in the
+    QA agent's prompt. The `app-validation-loop` skill reads
+    `.agent-team/artifacts/user-journeys.yaml` itself, so do NOT inline the file's
+    contents — just confirm it exists. If `app_url` is null/absent or the file is
+    missing, tell the QA agent to skip Journey Validation (no app/journeys to drive).
 - NOTE: The agent's base prompt (role, technical stack, skills, output requirements,
   status protocol) is baked into its registered agent definition. You only pass the
   dynamic, phase-specific context here.
@@ -198,8 +199,10 @@ For each agent:
   - serving-endpoint / model output → `data-scientist` or `genai-architect`
   - data/pipeline-sourced wrong values → `data-engineer`
   Dispatch the owning agent scoped to the specific failing journeys (include the
-  reproduction and backend evidence from the results file), then re-run the
-  **journey suite only**. Same 3-attempt cap, then escalate.
+  reproduction and backend evidence from the results file). Then re-dispatch the
+  QA agent for the Phase 4 gate (again passing `app_url`/`app_resource_name`) to
+  re-drive the journeys. Journey retries share this phase's `qa_attempts` counter
+  (same 3-attempt cap across all Phase 4 QA failures), then escalate.
 - **Checkpoint:** Write QA attempt count and result
 - Track in `qa_attempts` field
 
