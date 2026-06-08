@@ -139,6 +139,24 @@ project_snapshot: <the project_snapshot produced in Step 1>
 **6. Reset status:**
 - Write `.agent-team/status/progress.yaml` initialized with all new phases set to `pending`
 
+**7. Generate feature-scoped user journeys (app-touching features only):**
+
+If the feature touches app behavior — any of the capability tags `web-app`,
+`frontend`, `databricks-app`, or an `api-backend` change that alters
+user-visible behavior — derive journeys for **this feature's** success criteria
+and **append** them to `.agent-team/artifacts/user-journeys.yaml`:
+
+- Follow `lib/journey-schema.yaml` exactly.
+- Set `maps_to: "<feature_description>"` on every journey so feature journeys are
+  attributable and product-level journeys remain intact.
+- If `user-journeys.yaml` already exists (from `team-builder` or a prior feature),
+  **read it first and append** — never overwrite existing journeys. Give new
+  journeys ids that do not collide (e.g. continue the `J<n>` numbering).
+- Generate 1–3 journeys focused narrowly on the new/changed behavior, including a
+  negative path if the feature adds a gate or validation.
+
+If the feature touches no app behavior, skip this sub-step.
+
 ## Step 5: Tag and Hand Off
 
 Create a git tag to mark the pre-feature state for potential rollback:
