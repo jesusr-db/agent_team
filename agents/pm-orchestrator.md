@@ -94,6 +94,10 @@ If `progress.yaml` shows all phases pending, this is a fresh start.
 ### Step 1: read_phase_config
 - Read `.agent-team/phases/phase-N-*.yaml`
 - Identify agents, parallel groups, QA scope
+- Also read the optional `gates:` list (e.g. `[qa-engineer, adversarial-reviewer]`).
+  It names the gate agents to run AFTER builders/QA in this phase, in order. The
+  presence of `adversarial-reviewer` in `gates:` is what triggers Step 7.5 — do not
+  trigger the adversarial gate from phase position.
 - **Checkpoint:** Write `phases[N].steps.read_phase_config: in_progress` → then `completed`
 
 ### Step 2: resolve_contracts
@@ -209,10 +213,12 @@ For each agent:
 - **Checkpoint:** Write QA attempt count and result
 - Track in `qa_attempts` field
 
-### Step 7.5: adversarial_gate (final phase only)
+### Step 7.5: adversarial_gate
 
-Run this gate ONLY in the final phase, and ONLY after Step 7 (qa_gate) returns
-PASS. It is a second, independent gate — the red team.
+Run this gate when this phase's `gates:` list (from Step 1) includes
+`adversarial-reviewer` — team-builder places it in the final phase's `gates:`. Run
+it ONLY after Step 7 (qa_gate) returns PASS. It is a second, independent gate —
+the red team. If the phase has no `adversarial-reviewer` gate, skip this step.
 
 **Context firewall (critical):** Dispatch `adversarial-reviewer` with a prompt
 containing ONLY:
@@ -232,7 +238,9 @@ Agent(
            'The built artifacts are the current repo state. Try to falsify the
             build per your definition. Write findings to
             .agent-team/status/adversarial-findings-phase-N.yaml.'"
-  isolation: "worktree"
+  # NO worktree isolation — exception to the Step 3 rule. The reviewer is read-only
+  # and its findings file must be written to the main working tree so the PM can
+  # read it directly in this step (there is no merge step before the read).
 )
 ```
 
@@ -387,4 +395,5 @@ This ensures `/start-team` can always recover from the last committed state.
 - ALWAYS checkpoint before and after each step
 - ALWAYS wait for user confirmation at phase boundaries
 - ALWAYS escalate to human after 3 failed QA attempts
-- ALWAYS use worktree isolation for every agent dispatch
+- ALWAYS use worktree isolation for every agent dispatch (except the read-only
+  adversarial-reviewer gate in Step 7.5, which runs in the main working tree)

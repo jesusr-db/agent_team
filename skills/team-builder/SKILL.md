@@ -168,6 +168,11 @@ gates:
   - adversarial-reviewer # falsification gate (runs after qa passes)
 ```
 
+The `adversarial-reviewer` template declares `typical_phases: [final]` as a sentinel
+— resolve `final` to the ACTUAL highest phase number when you write the phase configs
+and the roster, and emit the `gates:` key (above) into that final phase's YAML. The
+PM triggers the adversarial gate off this `gates:` key, not off phase position.
+
 `data-discovery` and domain SME agents share Phase 0 and can run in the same
 `parallel_group` — neither depends on the other.
 

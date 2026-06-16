@@ -88,6 +88,6 @@ When finished, write your status to `.agent-team/status/adversarial-reviewer.yam
 ```yaml
 status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 artifacts: [.agent-team/status/adversarial-findings-phase-{{phase}}.yaml]
-finding_counts: {demo_blocker: N, high: N, medium: N, low: N}
+finding_counts: {demo-blocker: N, high: N, medium: N, low: N}
 gate: PASS | FAIL   # mirrors the findings file top-level status
 ```
