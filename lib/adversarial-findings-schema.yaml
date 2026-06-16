@@ -1,0 +1,34 @@
+# Adversarial Findings Schema
+# Written by the adversarial-reviewer agent to:
+#   .agent-team/status/adversarial-findings-phase-<N>.yaml
+# Read by the PM orchestrator (Step 7.5) to decide the adversarial gate.
+#
+# The reviewer's job is to FALSIFY the build, not bless it. Every finding is a
+# concrete, reproducible way the build fails to meet the spec/contract or is
+# unsafe — never a style nitpick.
+
+schema_version: 1
+
+# Top-level status the PM reads first.
+# FAIL  → at least one demo-blocker or high finding exists; PM routes fixes.
+# PASS  → no demo-blocker/high findings (medium/low may still be listed as notes).
+status: PASS | FAIL
+
+# Ordered list of findings, most severe first.
+findings:
+  - id: string                      # stable slug, e.g. "auth-bypass-on-delete"
+    title: string                   # one line
+    severity: demo-blocker | high | medium | low
+    category: correctness | contract-violation | security | spec-drift | hallucinated-api | data-integrity
+    # Which built surface owns the fix. Maps to an agent the PM can re-dispatch.
+    owner_surface: data | pipeline | model | serving-endpoint | app-frontend | app-backend | deployment | contract
+    # The spec/PRD line or contract field this falsifies. REQUIRED — a finding
+    # with no spec/contract anchor is an opinion, not a finding; drop it.
+    falsifies: string
+    evidence: string                # file:line, command output, or contract path proving it
+    reproduction: string            # exact steps/command to observe the failure
+    suggested_fix: string           # optional; what would resolve it (advisory only)
+
+# Free-text reviewer notes: attack surfaces probed, what was NOT checked, and why.
+# Lets the PM and humans judge coverage.
+coverage_notes: string

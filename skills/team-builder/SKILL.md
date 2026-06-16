@@ -103,6 +103,7 @@ Map each PRD requirement to one or more capability tags:
 | frontend-planning | Component architecture, page structure |
 | databricks-app | Databricks Apps deployment |
 | deployment | DAB configuration, CI/CD |
+| adversarial-review | Always present (sentinel) — independent falsification gate after QA |
 | domain:* | Industry-specific expertise (e.g., domain:retail, domain:healthcare) |
 
 ## Step 3: Select Curated Agents
@@ -131,6 +132,8 @@ agent is also present on the team (it depends on the domain playbook as required
 Always include these agents regardless of capabilities:
 - **qa-engineer** (always needed for validation)
 - **deploy-engineer** (always needed for deployment)
+- **adversarial-reviewer** (always needed; independent red-team gate that runs
+  in the final phase AFTER the qa-engineer gate passes — see Step 5)
 
 ## Step 4: Generate Dynamic Specialists
 
@@ -150,6 +153,28 @@ Apply the phase structure algorithm:
 3. Agents consuming data outputs → Phase 2 (depend on Phase 1)
 4. Integration work → Phase 3 (depends on all producers)
 5. Deploy → Phase 4 (always last)
+
+The **adversarial-reviewer** is assigned to the final phase (the same phase as
+`deploy-engineer`/`qa-engineer`) but is NOT placed in a parallel group with the
+builders. It is a *gate*, not a producer: the PM orchestrator dispatches it in
+Step 7.5 only after the final-phase qa-engineer gate passes. In the phase config,
+list `adversarial-reviewer` under a dedicated `gates:` key rather than
+`parallel_groups:` so the PM knows to run it as a post-QA gate, not a build agent:
+
+```yaml
+# in the final phase YAML
+gates:
+  - qa-engineer          # functional gate (existing)
+  - adversarial-reviewer # falsification gate (runs after qa passes)
+```
+
+The `adversarial-reviewer` template declares `typical_phases: [final]` as a sentinel
+— resolve `final` to the ACTUAL highest phase number when you write the phase configs
+and the roster, and emit the `gates:` key (above) into that final phase's YAML. The
+PM triggers the adversarial gate off this `gates:` key, not off phase position.
+The `gates:` key lives in the **phase YAML** (the PM reads it in Step 1
+`read_phase_config`); the team-manifest roster only marks the reviewer's role as a
+gate. Do not place `gates:` on non-final phases.
 
 `data-discovery` and domain SME agents share Phase 0 and can run in the same
 `parallel_group` — neither depends on the other.
@@ -209,12 +234,16 @@ Write all files:
   - Each phase's `steps` must include: read_phase_config, resolve_contracts,
     dispatch_agents, await_agents, merge_worktrees, qa_gate, update_progress,
     introspection — all set to `pending`
+  - The FINAL phase's `steps` must ALSO include `adversarial_gate: pending`
+    (between `qa_gate` and `update_progress`). Non-final phases must NOT include
+    `adversarial_gate` in their steps.
 - `.agent-team/artifacts/user-journeys.yaml` — only if generated in Step 1.7 (app teams)
 
 ## Step 8: Present Team Summary
 
 Display to the user:
 1. Team roster table: agent name, model tier, phase, parallel group
+   (list `adversarial-reviewer` in the final phase with role "gate: falsification")
 2. Phase plan with agent assignments
 3. Contract chain visualization (text-based)
 4. Generated artifacts: if `user-journeys.yaml` was written in Step 1.7, list it

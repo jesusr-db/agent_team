@@ -366,7 +366,7 @@ Replace with:
 
 Run:
 ```bash
-grep -q "adversarial-reviewer (always needed" skills/team-builder/SKILL.md && \
+grep -q "adversarial-reviewer\*\* (always needed" skills/team-builder/SKILL.md && \
 grep -q "| adversarial-review |" skills/team-builder/SKILL.md && \
 grep -q "gates:" skills/team-builder/SKILL.md && echo ok
 ```
@@ -513,6 +513,24 @@ Expected: prints `ok`.
 git add agents/pm-orchestrator.md skills/team-builder/SKILL.md
 git commit -m "feat: PM orchestrator runs firewalled adversarial gate after final QA"
 ```
+
+---
+
+## Task 6.5: Adversarial-review corrections (added after dogfooding the gate)
+
+A firewalled adversarial review of this branch surfaced real wiring gaps; fixed here:
+- **F2 (blocker):** the `gates:` key team-builder writes was read by nothing. PM Step 1
+  (`read_phase_config`) now parses `gates:`, and Step 7.5 triggers on
+  `"adversarial-reviewer" in phase.gates` instead of phase position.
+- **F3 (high):** `typical_phases: [final]` (a string) matched no integer phase. team-builder
+  Step 5 now resolves `final` to the actual highest phase number and emits the `gates:` key there.
+- **F4 (high):** the reviewer was dispatched with worktree isolation, so its findings file was
+  written in the worktree but read from main with no merge → silent pass. The reviewer is
+  read-only, so Step 7.5 now dispatches it WITHOUT worktree isolation (documented exception to
+  the Step 3 rule).
+- **F6 (low):** `finding_counts: {demo_blocker…}` harmonized to `demo-blocker` to match the enum.
+
+Committed as `fix: adversarial gate is config-driven via gates: key; reviewer runs read-only in main tree (F2/F3/F4/F6)`.
 
 ---
 

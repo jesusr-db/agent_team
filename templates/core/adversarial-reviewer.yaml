@@ -1,0 +1,20 @@
+name: adversarial-reviewer
+display_name: Adversarial Reviewer
+description: Independent red-team gate that tries to falsify the build after functional QA
+model: opus
+registered_agent: agents/adversarial-reviewer.md
+typical_phases: [final]      # runs in the last phase, after the QA gate
+
+capabilities:
+  - adversarial-review       # sentinel: always included, like qa/deploy
+
+skills: []
+
+# Read-only introspection only. Present for the Databricks target; harmless/absent
+# for other targets. The reviewer never gets write-capable tools.
+mcp_tools:
+  - databricks-mcp:execute_sql
+  - databricks-mcp:get_table_details
+
+output_paths:
+  - .agent-team/status/adversarial-findings-phase-*.yaml
