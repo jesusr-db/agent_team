@@ -172,6 +172,9 @@ The `adversarial-reviewer` template declares `typical_phases: [final]` as a sent
 — resolve `final` to the ACTUAL highest phase number when you write the phase configs
 and the roster, and emit the `gates:` key (above) into that final phase's YAML. The
 PM triggers the adversarial gate off this `gates:` key, not off phase position.
+The `gates:` key lives in the **phase YAML** (the PM reads it in Step 1
+`read_phase_config`); the team-manifest roster only marks the reviewer's role as a
+gate. Do not place `gates:` on non-final phases.
 
 `data-discovery` and domain SME agents share Phase 0 and can run in the same
 `parallel_group` — neither depends on the other.
@@ -232,7 +235,8 @@ Write all files:
     dispatch_agents, await_agents, merge_worktrees, qa_gate, update_progress,
     introspection — all set to `pending`
   - The FINAL phase's `steps` must ALSO include `adversarial_gate: pending`
-    (between `qa_gate` and `update_progress`)
+    (between `qa_gate` and `update_progress`). Non-final phases must NOT include
+    `adversarial_gate` in their steps.
 - `.agent-team/artifacts/user-journeys.yaml` — only if generated in Step 1.7 (app teams)
 
 ## Step 8: Present Team Summary
