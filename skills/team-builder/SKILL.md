@@ -226,6 +226,8 @@ Write all files:
   - Each phase's `steps` must include: read_phase_config, resolve_contracts,
     dispatch_agents, await_agents, merge_worktrees, qa_gate, update_progress,
     introspection — all set to `pending`
+  - The FINAL phase's `steps` must ALSO include `adversarial_gate: pending`
+    (between `qa_gate` and `update_progress`)
 - `.agent-team/artifacts/user-journeys.yaml` — only if generated in Step 1.7 (app teams)
 
 ## Step 8: Present Team Summary

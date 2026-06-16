@@ -209,6 +209,55 @@ For each agent:
 - **Checkpoint:** Write QA attempt count and result
 - Track in `qa_attempts` field
 
+### Step 7.5: adversarial_gate (final phase only)
+
+Run this gate ONLY in the final phase, and ONLY after Step 7 (qa_gate) returns
+PASS. It is a second, independent gate — the red team.
+
+**Context firewall (critical):** Dispatch `adversarial-reviewer` with a prompt
+containing ONLY:
+- the project description / PRD spec (from the team manifest),
+- the list of contract files in `.agent-team/contracts/` (paths — the agent reads them),
+- the built artifacts (the merged repo state — the agent reads files directly).
+
+Do NOT include: builder agents' status rationale, QA `checks`/pass notes,
+introspection text, or "what went well" summaries. Handing those over turns the
+reviewer into an echo. Dispatch in a fresh worktree like any other agent.
+
+```
+Agent(
+  description: "adversarial-reviewer - Phase N falsification gate"
+  subagent_type: "adversarial-reviewer"
+  prompt: "<PRD spec text> + <list of .agent-team/contracts/*.yaml paths> +
+           'The built artifacts are the current repo state. Try to falsify the
+            build per your definition. Write findings to
+            .agent-team/status/adversarial-findings-phase-N.yaml.'"
+  isolation: "worktree"
+)
+```
+
+After it returns, read `.agent-team/status/adversarial-findings-phase-N.yaml`:
+- **status: PASS** → gate passes. Note any medium/low findings in the phase report
+  (informational), then proceed to Step 8.
+- **status: FAIL** → treat exactly like a QA failure. For each `demo-blocker`/`high`
+  finding, route the fix to the agent that owns `owner_surface`:
+  - `app-frontend` / `app-backend` → `app-developer`
+  - `serving-endpoint` / `model` → `data-scientist` or `genai-architect`
+  - `data` / `pipeline` → `data-engineer`
+  - `deployment` → `deploy-engineer`
+  - `contract` → the producer agent named in the violated contract
+  Dispatch the owning agent scoped to the specific finding(s), passing the
+  `evidence` and `reproduction` from the findings file. Then re-run Step 7 (qa_gate)
+  AND re-run this Step 7.5 to confirm the fix and that it introduced no regression.
+
+**Shared attempt counter:** adversarial fix cycles share the phase's `qa_attempts`
+counter (the same 3-attempt cap that covers QA failures). After 3 combined failed
+attempts across qa_gate + adversarial_gate, escalate to human via
+`.agent-team/status/escalation.md`.
+
+- **Checkpoint:** Write `phases[N].steps.adversarial_gate` status and the gate
+  result; commit progress.yaml.
+
 ### Step 8: update_progress
 - Mark phase as `completed` with timestamp
 - Commit progress.yaml to git:
@@ -314,6 +363,7 @@ When resuming from a checkpoint, use this logic per step:
 | await_agents | Read status files from returned agents, re-dispatch any with no status |
 | merge_worktrees | Check git log for merged branches, merge only unmerged |
 | qa_gate | Re-run QA from scratch (stateless) |
+| adversarial_gate | Re-run adversarial review from scratch (stateless); re-read findings file |
 | update_progress | Write progress and commit (idempotent) |
 | introspection | Re-read agent statuses and QA results, rewrite CLAUDE.md section (idempotent) |
 
@@ -331,6 +381,7 @@ This ensures `/start-team` can always recover from the last committed state.
 ## Rules
 
 - NEVER skip QA gates
+- NEVER skip the adversarial gate in the final phase
 - NEVER proceed with unresolved agent blockers
 - NEVER merge conflicting worktrees without resolution
 - ALWAYS checkpoint before and after each step
