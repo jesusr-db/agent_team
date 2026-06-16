@@ -77,7 +77,7 @@ Execution Plan:
   Phase 1 (Data Ingestion): data-engineer (sonnet)
   Phase 2 (RAG + App): genai-architect (opus) ∥ app-developer (sonnet)
   Phase 3 (Integration): app-developer (sonnet)
-  Phase 4 (Deploy): deploy-engineer (sonnet) → qa-engineer (sonnet)
+  Phase 4 (Deploy): deploy-engineer (sonnet) → qa-engineer (sonnet) → adversarial-reviewer (opus, gate)
 ```
 
 ### --phase N
