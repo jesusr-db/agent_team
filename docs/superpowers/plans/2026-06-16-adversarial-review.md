@@ -366,7 +366,7 @@ Replace with:
 
 Run:
 ```bash
-grep -q "adversarial-reviewer (always needed" skills/team-builder/SKILL.md && \
+grep -q "adversarial-reviewer\*\* (always needed" skills/team-builder/SKILL.md && \
 grep -q "| adversarial-review |" skills/team-builder/SKILL.md && \
 grep -q "gates:" skills/team-builder/SKILL.md && echo ok
 ```
