@@ -235,8 +235,10 @@ Agent(
   description: "adversarial-reviewer - Phase N falsification gate"
   subagent_type: "adversarial-reviewer"
   prompt: "<PRD spec text> + <list of .agent-team/contracts/*.yaml paths> +
+           <security_focus list from team-manifest.yaml, if present> +
            'The built artifacts are the current repo state. Try to falsify the
-            build per your definition. Write findings to
+            build per your definition. Prioritize the security_focus surfaces for
+            this target. Write findings to
             .agent-team/status/adversarial-findings-phase-N.yaml.'"
   # NO worktree isolation — exception to the Step 3 rule. The reviewer is read-only
   # and its findings file must be written to the main working tree so the PM can

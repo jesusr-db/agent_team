@@ -32,6 +32,10 @@ the spec and attack the artifacts directly.
 
 ## Attack surfaces to probe
 
+If your dispatch prompt includes a `security_focus` list (from the target profile),
+treat those as **priority** attack surfaces for this stack — probe them first, in
+addition to the general surfaces below.
+
 Work through these deliberately; for each, try to construct a falsifying case:
 
 - **Correctness:** Does the code actually implement the spec's behavior, or only
