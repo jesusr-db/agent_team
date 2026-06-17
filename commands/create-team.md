@@ -4,7 +4,9 @@ description: "Analyze a PRD and assemble a dynamic agent team to build a Databri
 
 # /create-team
 
-You are creating a dynamic agent team to build a Databricks application.
+You are creating a dynamic agent team to build a software project. The **target
+profile** (`targets/<name>.yaml`) selects the technology stack; `databricks` is the
+default and reproduces the original Databricks-only behavior.
 
 ## Input
 
@@ -12,8 +14,11 @@ The user provided a PRD path and optional flags: {{ARGUMENTS}}
 
 Parse the following optional flags from `{{ARGUMENTS}}`:
 
-- `--catalog <name>` — Unity Catalog catalog to profile
-- `--schema <name>` — Unity Catalog schema/database to profile
+- `--target <name>` — target profile to build for: `databricks` (default), `web-fullstack`,
+  `docker`, `genai-finetuning`, or `generic`. Profiles live in `targets/<name>.yaml`.
+  If omitted, auto-detect from the PRD (Step 1.4).
+- `--catalog <name>` — Unity Catalog catalog to profile (databricks target only)
+- `--schema <name>` — Unity Catalog schema/database to profile (databricks target only)
 - `--max-tables N` — maximum tables to profile (default: 50; passed through to data-analyzer)
 
 The PRD path is the first non-flag argument. Flags may appear before or after
@@ -30,7 +35,27 @@ google-docs skill to read it. If it's a local file path, read it directly.
 
 If no path was provided, ask the user for the PRD location.
 
-### Step 1.5: Analyze existing data
+### Step 1.4: Resolve the target profile
+
+1. If `--target <name>` was provided, load `targets/<name>.yaml`. If the file does
+   not exist, list available profiles (the stems of `targets/*.yaml`) and ask the user.
+2. If `--target` was omitted, **auto-detect**: read every `targets/*.yaml`, count how
+   many of each profile's `detect_keywords` appear (case-insensitive) in the PRD text.
+   - Pick the highest-scoring profile.
+   - On a tie, or if the top score is 0, fall back to `databricks` if any Databricks
+     keyword matched at all, otherwise `generic`.
+   - Tell the user which profile was auto-detected and the runner-up, e.g.
+     `Target: web-fullstack (auto-detected; runner-up: docker). Override with --target.`
+3. Load the chosen profile and keep its contents available as `active_profile` for
+   Step 2 (passed to the team-builder skill).
+
+This resolved profile drives capability vocabulary, agent selection, scaffold,
+deploy, validation, and QA in every later step.
+
+### Step 1.5: Analyze existing data (databricks target only)
+
+**Applies only when `active_profile.name == "databricks"`.** For all other targets,
+skip this step entirely (there is no Unity Catalog to profile).
 
 **Trigger:** Run this step when either condition is true:
 1. Both `--catalog` and `--schema` flags were provided in the arguments.
@@ -53,6 +78,10 @@ warning and continue — do **not** block team assembly.
 **If not triggered:** Skip this step entirely.
 
 ### Step 2: Invoke team-builder skill
+
+Pass `active_profile` (from Step 1.4) to the team-builder skill — it is the
+authoritative source for capability vocabulary, curated vs. generated agents,
+tech SMEs, scaffold, deploy, validation, and QA assertions.
 
 Use the team-builder skill to:
 0. If `.agent-team/artifacts/data-profile.yaml` was produced in Step 1.5,
