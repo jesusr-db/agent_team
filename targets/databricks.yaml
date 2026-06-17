@@ -1,0 +1,74 @@
+schema_version: 1
+name: databricks
+display_name: Databricks
+description: Databricks application — UC, DABs, Spark, Model Serving, Apps (default profile)
+
+detect_keywords: [databricks, unity catalog, delta, spark, dab, "asset bundle", "model serving", "vector search", genie, lakebase, "databricks app"]
+
+# Use the existing curated registered agents AS-IS — zero behavior change.
+curated_agents:
+  - data-discovery
+  - data-engineer
+  - data-scientist
+  - genai-architect
+  - ui-ux-analyst
+  - app-developer
+  - deploy-engineer
+  - qa-engineer
+
+capabilities:
+  - {tag: data-profiling, triggered_by: existing tables/schemas or --catalog/--schema, satisfy: "curated:data-discovery"}
+  - {tag: catalog-exploration, triggered_by: references existing catalog/schema, satisfy: "curated:data-discovery"}
+  - {tag: data-ingestion, triggered_by: data loading/ETL/file processing, satisfy: "curated:data-engineer"}
+  - {tag: data-transformation, triggered_by: cleaning/feature-eng/aggregation, satisfy: "curated:data-engineer"}
+  - {tag: etl, triggered_by: batch/streaming pipelines, satisfy: "curated:data-engineer"}
+  - {tag: streaming, triggered_by: real-time processing, satisfy: "curated:data-engineer"}
+  - {tag: ml-training, triggered_by: model training/experiment tracking, satisfy: "curated:data-scientist"}
+  - {tag: ml-serving, triggered_by: model deployment/inference, satisfy: "curated:data-scientist"}
+  - {tag: feature-engineering, triggered_by: feature store/tables, satisfy: "curated:data-scientist"}
+  - {tag: genai-rag, triggered_by: RAG/doc Q&A/retrieval, satisfy: "curated:genai-architect"}
+  - {tag: genai-prompt-engineering, triggered_by: prompt design/few-shot, satisfy: "curated:genai-architect"}
+  - {tag: vector-search, triggered_by: embedding storage/similarity, satisfy: "curated:genai-architect"}
+  - {tag: embeddings, triggered_by: embedding generation, satisfy: "curated:genai-architect"}
+  - {tag: llm-integration, triggered_by: LLM API calls, satisfy: "curated:genai-architect"}
+  - {tag: web-app, triggered_by: web UI/dashboard, satisfy: "curated:app-developer"}
+  - {tag: api-backend, triggered_by: REST/backend services, satisfy: "curated:app-developer"}
+  - {tag: frontend, triggered_by: React/UI components, satisfy: "curated:app-developer"}
+  - {tag: ui-design, triggered_by: mockups/wireframes, satisfy: "curated:ui-ux-analyst"}
+  - {tag: ux-workflow, triggered_by: journeys/personas, satisfy: "curated:ui-ux-analyst"}
+  - {tag: wireframing, triggered_by: screen layouts, satisfy: "curated:ui-ux-analyst"}
+  - {tag: frontend-planning, triggered_by: component architecture, satisfy: "curated:ui-ux-analyst"}
+  - {tag: databricks-app, triggered_by: Databricks Apps deployment, satisfy: "curated:app-developer"}
+  - {tag: deployment, triggered_by: DAB config/CI-CD, satisfy: "curated:deploy-engineer"}
+
+# Databricks curated agents already carry deep stack knowledge — no tech SMEs needed.
+tech_smes: []
+
+scaffold:
+  marker_file: databricks.yml
+  create_dirs: [src, resources, tests]
+  create_files:
+    - {path: databricks.yml, purpose: "base DAB bundle config"}
+
+deploy:
+  satisfy: "curated:deploy-engineer"
+  verb: "databricks bundle deploy"
+
+validation:
+  driver: browser
+  log_command: "databricks apps logs <app_resource_name>"
+
+qa_assertions:
+  e2e:
+    - "databricks bundle validate passes"
+    - "E2E test scenarios cover PRD success criteria"
+    - "Security review: no secrets, proper auth patterns"
+  deployed:
+    - "Pipeline executes successfully"
+    - "Serving endpoints respond correctly"
+    - "App loads and basic smoke test passes"
+
+security_focus:
+  - "UC permission grants too broad"
+  - "secrets hardcoded instead of dbutils.secrets / app resources"
+  - "serving endpoint unauthenticated"
