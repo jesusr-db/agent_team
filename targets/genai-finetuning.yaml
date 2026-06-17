@@ -1,0 +1,49 @@
+schema_version: 1
+name: genai-finetuning
+display_name: GenAI / ML Fine-Tuning
+description: Fine-tune or adapt an LLM/ML model with a reproducible training + evaluation harness
+
+detect_keywords: [finetune, "fine-tune", "fine tuning", lora, qlora, sft, rlhf, dpo, "training run", "eval harness", peft, "hugging face", transformers, checkpoint, dataset, "model adaptation"]
+
+curated_agents: []
+
+capabilities:
+  - {tag: data-prep, triggered_by: dataset curation/formatting, satisfy: "generate:data-prep-engineer"}
+  - {tag: training, triggered_by: fine-tuning/training loop, satisfy: "generate:training-engineer"}
+  - {tag: evaluation, triggered_by: eval/benchmark/metrics, satisfy: "generate:eval-engineer"}
+  - {tag: model-serving, triggered_by: serve/inference the tuned model, satisfy: "generate:serving-engineer"}
+  - {tag: deployment, triggered_by: package/ship the artifact, satisfy: "generate:deploy-specialist"}
+
+tech_smes: [finetuning, ml-evaluation]
+
+scaffold:
+  marker_file: pyproject.toml
+  create_dirs: [data, train, eval, configs, tests]
+  create_files:
+    - {path: pyproject.toml, purpose: "deps (transformers, peft, datasets, etc.)"}
+    - {path: configs/train.yaml, purpose: "training hyperparameters"}
+    - {path: eval/run_eval.py, purpose: "evaluation harness entrypoint"}
+
+deploy:
+  satisfy: "generate:serving-engineer"
+  verb: "python -m serve  # or container/endpoint per PRD"
+
+# Fine-tuning has no UI to drive — journeys become an eval harness run.
+validation:
+  driver: eval
+  log_command: "tail -n 200 eval/eval.log"
+
+qa_assertions:
+  e2e:
+    - "training config loads and a 1-step smoke train runs"
+    - "dataset schema matches the training contract"
+    - "no secrets / no raw API keys in configs"
+  deployed:
+    - "eval harness runs and writes metrics"
+    - "tuned model beats the baseline on the PRD's target metric (or regression is reported)"
+
+security_focus:
+  - "training data PII/licensing leakage"
+  - "eval set contamination / train-test leakage"
+  - "model card / metric claims unsupported by the eval output"
+  - "secrets in config or checkpoint metadata"

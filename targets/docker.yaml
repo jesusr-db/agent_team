@@ -1,0 +1,48 @@
+schema_version: 1
+name: docker
+display_name: Docker Service
+description: Containerized backend service (single or multi-container) built and run via Docker/Compose
+
+detect_keywords: [docker, dockerfile, container, "docker compose", microservice, kubernetes, k8s, image, "containerized"]
+
+curated_agents: []
+
+capabilities:
+  - {tag: api-backend, triggered_by: service/API logic, satisfy: "generate:backend-engineer"}
+  - {tag: containerization, triggered_by: Dockerfile/compose/image build, satisfy: "generate:container-engineer"}
+  - {tag: data-store, triggered_by: db/cache/queue dependency, satisfy: "generate:backend-engineer"}
+  - {tag: deployment, triggered_by: registry push/orchestration, satisfy: "generate:deploy-specialist"}
+
+tech_smes: [docker, web-security]
+
+scaffold:
+  marker_file: Dockerfile
+  create_dirs: [app, tests]
+  create_files:
+    - {path: Dockerfile, purpose: "service image build"}
+    - {path: docker-compose.yml, purpose: "service + dependencies"}
+    - {path: requirements.txt, purpose: "or package.json — runtime deps"}
+
+deploy:
+  satisfy: "generate:deploy-specialist"
+  verb: "docker compose up -d --build"
+
+validation:
+  driver: http
+  log_command: "docker compose logs --tail=200"
+
+qa_assertions:
+  e2e:
+    - "docker build succeeds"
+    - "docker compose config is valid"
+    - "no secrets baked into image layers"
+    - "image runs as non-root where feasible"
+  deployed:
+    - "container reports healthy"
+    - "primary endpoint returns expected status"
+
+security_focus:
+  - "secrets in image layers or ENV defaults"
+  - "running as root unnecessarily"
+  - "exposed ports beyond service need"
+  - "base image with known CVEs / :latest pin"

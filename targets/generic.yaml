@@ -1,0 +1,42 @@
+schema_version: 1
+name: generic
+display_name: Generic
+description: Fallback profile for stacks that do not match a specialized target — leans entirely on tech SMEs + generated specialists
+
+detect_keywords: []          # never auto-detected; only the explicit fallback
+
+curated_agents: []
+
+capabilities:
+  - {tag: implementation, triggered_by: any build requirement, satisfy: "generate:implementation-engineer"}
+  - {tag: deployment, triggered_by: any ship/run requirement, satisfy: "generate:deploy-specialist"}
+
+# The PRD's primary technologies become tech-SME domains at assembly time
+# (team-builder fills this from PRD analysis when the profile leaves it open).
+tech_smes: []
+
+scaffold:
+  marker_file: README.md
+  create_dirs: [src, tests]
+  create_files:
+    - {path: README.md, purpose: "project overview"}
+
+deploy:
+  satisfy: "generate:deploy-specialist"
+  verb: "echo 'define deploy in PRD'  # generic: deploy specialist derives from PRD"
+
+validation:
+  driver: cli
+  log_command: "tail -n 200 run.log"
+
+qa_assertions:
+  e2e:
+    - "project builds / imports without error"
+    - "tests present and passing for new code"
+    - "no secrets committed"
+  deployed:
+    - "primary entrypoint runs and produces expected output"
+
+security_focus:
+  - "hardcoded secrets"
+  - "unvalidated external input"
