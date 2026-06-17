@@ -4,7 +4,8 @@ description: "Execute the agent team plan — dispatches PM orchestrator for pha
 
 # /start-team
 
-You are launching the agent team to build the Databricks application.
+You are launching the agent team to build the project for its configured target
+(read `target:` from `.agent-team/team-manifest.yaml`).
 
 ## Input
 
@@ -34,15 +35,16 @@ git add .
 git commit -m "Initial commit: agent team project"
 ```
 
-### 3. Scaffold DAB Project
+### 3. Scaffold Project (profile-driven)
 
-If `databricks.yml` doesn't exist, create the base DAB structure:
-```
-databricks.yml
-src/
-resources/
-tests/
-```
+Read the `scaffold` block from `.agent-team/team-manifest.yaml` (embedded by
+team-builder from the target profile). If `scaffold.marker_file` already exists,
+skip scaffolding. Otherwise create `scaffold.create_dirs` and each
+`scaffold.create_files` entry with minimal starter content matching its `purpose`.
+
+For the `databricks` target this is exactly the original DAB scaffold
+(`databricks.yml`, `src/`, `resources/`, `tests/`). For other targets it is the
+profile's skeleton (e.g. `package.json` + `frontend/` + `backend/` for web-fullstack).
 
 ### 4. Initialize or Read Progress
 
