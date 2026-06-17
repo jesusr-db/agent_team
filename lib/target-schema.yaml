@@ -1,0 +1,70 @@
+# Target Profile Schema
+# A target profile (targets/<name>.yaml) declares everything stack-specific that
+# the harness needs, so the team-builder / start-team / deploy / validation logic
+# stays target-neutral and reads choices from here.
+#
+# The Databricks profile (targets/databricks.yaml) reproduces today's behavior
+# exactly; it is the default when no --target is given and the PRD does not clearly
+# indicate another stack.
+
+schema_version: 1
+
+# --- identity ---
+name: string                 # profile slug, must equal the filename stem
+display_name: string         # human label, e.g. "Full-Stack Web"
+description: string          # one line
+
+# Keywords used to AUTO-DETECT this target from PRD text when --target is omitted.
+# The create-team auto-detector scores each profile by keyword hits; highest wins,
+# ties and zero-hits fall back to `generic`. Databricks always wins on databricks hits.
+detect_keywords: [string]    # e.g. ["react", "frontend", "rest api", "fastapi"]
+
+# --- team composition ---
+# Curated registered agents to use AS-IS via subagent_type dispatch. Only the
+# databricks profile populates this (its 8 agents). Other profiles leave it empty
+# and rely on generated specialists.
+curated_agents: [string]     # e.g. ["data-engineer","app-developer",...] or []
+
+# Capability tags valid for THIS target (replaces the hardwired table in team-builder).
+# Each maps to how the team-builder satisfies it.
+capabilities:
+  - tag: string              # e.g. "api-backend"
+    triggered_by: string     # PRD phrasing that implies this capability
+    # How to satisfy it:
+    #   curated:<agent>   → use a curated agent (databricks only)
+    #   generate:<role>   → generate a specialist via specialist-generator
+    satisfy: string
+
+# Technical-domain SMEs to spin up in Phase 0 (recovers per-stack specificity).
+# Each becomes a generated agent from templates/meta/tech-sme-generator.yaml.
+tech_smes: [string]          # e.g. ["docker","fastapi"] ; [] for databricks (it has curated depth)
+
+# --- project skeleton ---
+# Files/dirs to scaffold in start-team Step 3 (replaces the hardwired DAB scaffold).
+scaffold:
+  marker_file: string        # if this file exists, skip scaffolding (e.g. "databricks.yml")
+  create_dirs: [string]      # e.g. ["frontend/src","backend/app","tests"]
+  create_files:              # path → short description of starter content
+    - path: string
+      purpose: string
+
+# --- deploy ---
+deploy:
+  # curated:<agent> (databricks → deploy-engineer) or generate:<role>
+  satisfy: string
+  verb: string               # the deploy command, e.g. "databricks bundle deploy" | "docker compose up -d" | "vercel deploy --prod"
+
+# --- validation (app-validation-loop driver selection) ---
+validation:
+  driver: browser | http | cli | eval   # how journeys are driven
+  # how to fetch backend evidence for the dual-channel capture
+  log_command: string        # e.g. "databricks apps logs <app>" | "docker compose logs --tail=200" | "tail -n 200 server.log"
+
+# --- QA assertions (replaces hardwired E2E checks in qa-engineer) ---
+qa_assertions:
+  e2e: [string]              # phase 3+ checks, e.g. ["docker build succeeds","compose config valid"]
+  deployed: [string]         # phase 4 checks, e.g. ["container healthy on :8080","/health returns 200"]
+
+# --- adversarial reviewer focus ---
+# Extra attack surfaces the adversarial-reviewer should prioritize for this stack.
+security_focus: [string]     # e.g. ["secrets in frontend bundle","CORS misconfig","exposed ports"]
