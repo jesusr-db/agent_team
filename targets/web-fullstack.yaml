@@ -1,0 +1,54 @@
+schema_version: 1
+name: web-fullstack
+display_name: Full-Stack Web
+description: React/Vite frontend + FastAPI or Node backend, deployed as a containerized or hosted web app
+
+detect_keywords: [react, vue, svelte, frontend, "rest api", fastapi, express, node, "full stack", website, "web app", typescript, tailwind, vite]
+
+# No curated registered agents — assembled from generated specialists + tech SMEs.
+curated_agents: []
+
+capabilities:
+  - {tag: frontend, triggered_by: React/Vue/UI components, satisfy: "generate:frontend-engineer"}
+  - {tag: api-backend, triggered_by: REST/GraphQL backend, satisfy: "generate:backend-engineer"}
+  - {tag: ui-design, triggered_by: mockups/wireframes, satisfy: "generate:ui-ux-designer"}
+  - {tag: ux-workflow, triggered_by: user journeys/personas, satisfy: "generate:ui-ux-designer"}
+  - {tag: integration, triggered_by: frontend↔backend wiring, satisfy: "generate:integration-engineer"}
+  - {tag: deployment, triggered_by: hosting/CI-CD, satisfy: "generate:deploy-specialist"}
+
+# Technical SMEs run in Phase 0 and write tech-playbook.md to recover specificity.
+tech_smes: [react, fastapi, web-security]
+
+scaffold:
+  marker_file: package.json
+  create_dirs: [frontend/src, backend/app, tests]
+  create_files:
+    - {path: package.json, purpose: "root workspace manifest / scripts"}
+    - {path: backend/requirements.txt, purpose: "python backend deps (fastapi, uvicorn)"}
+    - {path: docker-compose.yml, purpose: "frontend + backend services for local + deploy"}
+
+deploy:
+  satisfy: "generate:deploy-specialist"
+  verb: "docker compose up -d --build"
+
+validation:
+  driver: browser
+  log_command: "docker compose logs --tail=200 backend"
+
+qa_assertions:
+  e2e:
+    - "frontend builds (npm run build) with no errors"
+    - "backend imports and starts without exceptions"
+    - "no secrets committed; .env is gitignored"
+    - "E2E scenarios cover PRD success criteria"
+  deployed:
+    - "compose stack is healthy (docker compose ps all 'running')"
+    - "backend /health returns 200"
+    - "frontend served and renders root route"
+
+security_focus:
+  - "secrets or API keys bundled into the frontend build"
+  - "CORS misconfigured (wildcard with credentials)"
+  - "unauthenticated mutating endpoints"
+  - "SQL/NoSQL/prompt injection on user input"
+  - "exposed ports beyond what the app needs"
