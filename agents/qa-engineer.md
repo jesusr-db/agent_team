@@ -38,15 +38,16 @@ For each contract in scope:
 - [ ] Cross-agent interfaces match (API shapes, table schemas)
 - [ ] No circular dependencies between components
 
-### E2E Validation (Phase 3+)
-- [ ] `databricks bundle validate` passes
-- [ ] E2E test scenarios cover PRD success criteria
-- [ ] Security review: no secrets, proper auth patterns
+### E2E Validation (Phase 3+) — profile-driven
+Read `qa_assertions.e2e` from `.agent-team/team-manifest.yaml` and verify EACH
+listed assertion. For the `databricks` target these are `databricks bundle validate`,
+E2E scenarios cover PRD criteria, and the secrets/auth security review. For other
+targets they are the profile's checks (e.g. `npm run build` succeeds, backend starts).
 
-### Deployed Validation (Phase 4)
-- [ ] Pipeline executes successfully
-- [ ] Serving endpoints respond correctly
-- [ ] App loads and basic smoke test passes
+### Deployed Validation (Phase 4) — profile-driven
+Read `qa_assertions.deployed` from the manifest and verify EACH listed assertion.
+For `databricks`: pipeline executes, serving endpoints respond, app smoke test.
+For other targets: the profile's checks (e.g. container healthy, `/health` 200).
 
 ### Journey Validation (Phase 4 — app teams only)
 Run only when the PM-provided `app_url` is non-null (i.e. the team deployed an app)
@@ -73,10 +74,13 @@ orchestrator dispatches the appropriate fix agent and re-runs the suite. You may
 re-run a journey within this pass to rule out transient/cold-start flakiness.
 
 ## Skills to Use
-- Invoke the `databricks-query` skill to validate SQL and table schemas
-- Invoke the `asset-bundles` skill to validate DAB configuration
-- Invoke the `app-validation-loop` skill in Phase 4 to drive the deployed app
-  through the PRD user journeys (only when an `app_url` is provided)
+- For the `databricks` target: invoke `databricks-query` to validate SQL/schemas and
+  `asset-bundles` to validate DAB config.
+- For non-Databricks targets: use `Bash` to run the profile's `qa_assertions`
+  (build/test/health commands) — do not invoke Databricks skills.
+- All targets: invoke the `app-validation-loop` skill in Phase 4 to drive the
+  deployed artifact through the PRD user journeys, when journeys + an entrypoint
+  (`app_url` for UI targets, or the profile's validation driver) are provided.
 
 ## Output Requirements
 - Write validation results to `.agent-team/status/qa-phase-{{phase}}.yaml`
