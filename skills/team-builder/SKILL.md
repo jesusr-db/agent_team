@@ -26,8 +26,17 @@ description: Analyzes a PRD to identify required capabilities and assemble an ag
 
 # Team Builder
 
-You are assembling a team of AI agents to build a Databricks application.
-Given a PRD document, you will analyze it and produce a complete team configuration.
+You are assembling a team of AI agents to build a software project for a specific
+**target profile**. Given a PRD document and an `active_profile` (the parsed
+contents of `targets/<name>.yaml`, passed by `/create-team`), you will analyze the
+PRD and produce a complete team configuration for that target.
+
+**`active_profile` is authoritative.** Source the capability vocabulary from
+`active_profile.capabilities`, the curated agents from `active_profile.curated_agents`,
+the technical SMEs from `active_profile.tech_smes`, and the scaffold/deploy/validation/
+QA choices from the corresponding profile keys. When `active_profile.name ==
+"databricks"`, this reproduces the original behavior exactly. If no profile was passed
+(legacy invocation), default to `targets/databricks.yaml`.
 
 ## Step 1: Parse the PRD
 
@@ -76,40 +85,23 @@ These journeys are consumed in **Phase 4** by the QA engineer via the
 
 ## Step 2: Map to Capability Tags
 
-Map each PRD requirement to one or more capability tags:
+Map each PRD requirement to one or more capability tags from **`active_profile.capabilities`**. Each profile entry has `tag`, `triggered_by`
+(the PRD phrasing that implies it), and `satisfy` (`curated:<agent>` or
+`generate:<role>`). Match PRD requirements against `triggered_by` to select tags.
 
-| Capability Tag | Triggered By |
-|---------------|-------------|
-| data-profiling | Existing data sources, tables, or schemas mentioned; --catalog/--schema provided; any ETL/ML/RAG requirement (always profile before building) |
-| catalog-exploration | PRD references existing catalog/schema structure or asks to understand the data |
-| data-ingestion | Any data loading, ETL, file processing |
-| data-transformation | Data cleaning, feature engineering, aggregation |
-| etl | Batch or streaming data pipelines |
-| streaming | Real-time data processing |
-| ml-training | Model training, experiment tracking |
-| ml-serving | Model deployment, inference endpoints |
-| feature-engineering | Feature store, feature tables |
-| genai-rag | RAG pipelines, document Q&A, retrieval |
-| genai-prompt-engineering | Prompt design, few-shot learning |
-| vector-search | Embedding storage, similarity search |
-| embeddings | Text/image embedding generation |
-| llm-integration | LLM API calls, chain-of-thought |
-| web-app | Web UI, dashboard, interactive app |
-| api-backend | REST API, GraphQL, backend services |
-| frontend | React, UI components, user experience |
-| ui-design | UI mockups, wireframes, visual design |
-| ux-workflow | User journeys, personas, interaction patterns |
-| wireframing | Screen layouts, component placement |
-| frontend-planning | Component architecture, page structure |
-| databricks-app | Databricks Apps deployment |
-| deployment | DAB configuration, CI/CD |
-| adversarial-review | Always present (sentinel) — independent falsification gate after QA |
-| domain:* | Industry-specific expertise (e.g., domain:retail, domain:healthcare) |
+`domain:*` tags (industry expertise, e.g. `domain:retail`) are always available
+regardless of profile and are satisfied by an industry SME (Step 4).
+
+> The capability vocabulary is no longer hardwired here — it lives in the target
+> profile so new stacks are added by authoring a profile, not editing this skill.
+> For the canonical Databricks vocabulary, see `targets/databricks.yaml`.
 
 ## Step 3: Select Curated Agents
 
-For each capability tag, check if a curated template in `templates/core/` covers it.
-Read each template's `capabilities` field to match.
+For each matched capability whose `satisfy` is `curated:<agent>`, select that curated
+registered agent (its template is in `templates/core/`). Only the `databricks` profile
+uses curated agents; other profiles leave `curated_agents` empty and satisfy every
+capability via `generate:<role>` (Step 4).
 
 **`data-discovery` selection rule:** Include `data-discovery` whenever ANY of
 these conditions is true:
@@ -129,21 +121,38 @@ When `ui-design`, `ux-workflow`, `wireframing`, or `frontend-planning` is matche
 select the `ui-ux-analyst` template. Only select `ui-ux-analyst` when a domain SME
 agent is also present on the team (it depends on the domain playbook as required input).
 
-Always include these agents regardless of capabilities:
-- **qa-engineer** (always needed for validation)
-- **deploy-engineer** (always needed for deployment)
-- **adversarial-reviewer** (always needed; independent red-team gate that runs
-  in the final phase AFTER the qa-engineer gate passes — see Step 5)
+Always include these gate/role agents regardless of capabilities:
+- **qa-engineer** (always — validation; its assertions come from
+  `active_profile.qa_assertions`)
+- **adversarial-reviewer** (always — independent red-team gate in the final phase
+  after the qa-engineer gate; see Step 5. Pass `active_profile.security_focus` to it.)
+- **deploy/ship agent** (always — satisfied by `active_profile.deploy.satisfy`:
+  for `databricks` this is the curated `deploy-engineer`; for other profiles,
+  generate a deploy specialist via Step 4 using `active_profile.deploy.verb`)
 
-## Step 4: Generate Dynamic Specialists
+`qa-engineer` and `adversarial-reviewer` are registered agents reused across all
+targets (their tools are generic / read-only, so no per-target tool binding is needed).
 
-For capability tags not covered by any curated template:
-1. Read the appropriate meta-template from `templates/meta/`
-   - `domain:*` tags → use `domain-sme-generator.yaml`
-   - All other uncovered tags → use `specialist-generator.yaml`
-2. Fill in the meta-template variables with PRD context
-3. Generate the full agent definition
-4. Write to `.agent-team/agents/<name>.md`
+## Step 4: Generate Dynamic Specialists and SMEs
+
+**4a. Technical SMEs (Phase 0).** For each entry in `active_profile.tech_smes`,
+generate a technical SME using `templates/meta/tech-sme-generator.yaml` (set
+`tech_domain` to the entry). For the `generic` profile, if `tech_smes` is empty,
+derive 1–3 tech domains from the PRD's primary technologies and generate SMEs for
+those. Each writes `.agent-team/artifacts/tech-playbook-<slug>.md`, broadcast to all
+builders (add a broadcast contract per Step 6). This is how non-Databricks targets
+recover the deep stack specificity that the curated Databricks agents have built in.
+
+**4b. Industry SMEs (Phase 0).** For each `domain:*` tag, generate a domain SME using
+`domain-sme-generator.yaml` (unchanged behavior).
+
+**4c. Builder/deploy specialists.** For each capability whose `satisfy` is
+`generate:<role>` (including the deploy specialist from
+`active_profile.deploy.satisfy` when it is `generate:…`), generate a specialist using
+`specialist-generator.yaml`. Fill the generator with PRD context AND the relevant
+`tech-playbook-<slug>.md` as required input (so the specialist inherits the SME's
+guidance). Default `mcp_tools: []` — generated specialists use generic tools and are
+dispatched via the PM's dynamic-agent path. Write each to `.agent-team/agents/<name>.md`.
 
 ## Step 5: Design Phase Structure
 
@@ -226,7 +235,11 @@ For each producer→consumer edge:
 ## Step 7: Write .agent-team/ Directory
 
 Write all files:
-- `.agent-team/team-manifest.yaml` — team roster, phases, model tiers
+- `.agent-team/team-manifest.yaml` — team roster, phases, model tiers. **Also record
+  `target: <active_profile.name>` and embed the resolved `scaffold`, `deploy`,
+  `validation`, and `qa_assertions` blocks from the profile so `/start-team`, the
+  deploy agent, the QA agent, and the validation loop read them without re-loading
+  the profile file.**
 - `.agent-team/agents/*.md` — one per agent (customized from templates)
 - `.agent-team/phases/*.yaml` — one per phase
 - `.agent-team/contracts/*.yaml` — one per producer→consumer edge
