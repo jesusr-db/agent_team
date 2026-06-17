@@ -7,6 +7,29 @@ description: "Drive an already-deployed, OAuth-authenticated web app through use
 
 Drive an already-deployed, OAuth-walled web app from Claude Code. Optimized for Databricks Apps (`*.databricksapps.com`) on this Mac but works for any app whose auth lives in the user's regular Chrome Default profile.
 
+## Driver selection (target-aware)
+
+Read `validation.driver` and `validation.log_command` from
+`.agent-team/team-manifest.yaml` (embedded from the target profile). Select the
+driver; the dual-channel evidence rule (action + backend log capture) is the same
+for all:
+
+- **browser** — drive the UI with the Playwright + CDP path below (web-fullstack,
+  databricks-app). Capture: screenshot + final text, and backend logs via
+  `validation.log_command`.
+- **http** — drive the service with HTTP requests (curl/httpx) against each journey's
+  endpoint. Capture: response status/body, and container logs via `log_command`.
+- **cli** — drive the artifact via its CLI entrypoint with the journey's input on
+  stdin/args. Capture: stdout/stderr, and `log_command` output.
+- **eval** — there is no interactive surface; run the project's eval harness and
+  treat each journey's `success_criteria` as a metric threshold. Capture: the
+  metrics output and `log_command`.
+
+When `validation.driver == browser`, follow the Playwright + CDP / chrome-devtools
+paths exactly as documented below. For `http`/`cli`/`eval`, the journey schema and
+the PASS/PARTIAL/FAIL verdict + severity model are unchanged — only the drive and
+capture mechanism differs.
+
 ## Triggers
 
 Invoke when the user says any of:
