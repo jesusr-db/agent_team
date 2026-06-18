@@ -6,19 +6,19 @@
   },
   "metadata": {
     "description": "Agent Team plugin for orchestrating AI agent teams",
-    "version": "0.1.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "agent-team",
       "source": "./",
-      "description": "Dynamically assemble and orchestrate AI agent teams to build Databricks applications end-to-end. Use /create-team to analyze a PRD and assemble a team, then /start-team to execute.",
-      "version": "0.1.0",
+      "description": "Dynamically assemble and orchestrate AI agent teams to build software projects end-to-end across target profiles (Databricks, full-stack web, Docker, GenAI fine-tuning, generic). Use /create-team to analyze a PRD and assemble a team, then /start-team to execute.",
+      "version": "0.3.0",
       "author": {
         "name": "Databricks Field Engineering"
       },
       "category": "development",
-      "keywords": ["agents", "orchestration", "team", "databricks", "prd"]
+      "keywords": ["agents", "orchestration", "team", "databricks", "web", "docker", "genai", "target-profiles", "prd"]
     }
   ]
 }
