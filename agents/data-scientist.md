@@ -4,7 +4,7 @@ description: >
   Builds and deploys ML models on Databricks using MLflow, Unity Catalog,
   and Model Serving. Produces trained models and serving endpoints matching
   output contracts. Dispatched by PM orchestrator.
-model: sonnet
+model: haiku
 tools: Skill, Read, Write, Edit, Bash, Glob, Grep, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__get_table_details, mcp__databricks-mcp__query_serving_endpoint
 ---
 

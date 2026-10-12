@@ -4,7 +4,7 @@ description: >
   Deep-profiles all data sources — schema, column stats, value distributions,
   temporal patterns, data quality flags, sample CSVs, and data dictionary.
   Runs in Phase 0 so all downstream agents have real data context.
-model: sonnet
+model: haiku
 registered_agent: agents/data-discovery.md
 typical_phases: [0, 1]
 

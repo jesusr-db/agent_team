@@ -16,6 +16,12 @@ skill's `pkill` of Chrome or use port 9222 for that case; the user's browser may
 states and screenshots every route at each viewport in `ui-design-spec.yaml`. Evidence
 goes to `.agent-team/artifacts/ux-screenshots/`.
 
+The same local path serves **pre-redeploy journey validation** (pm-orchestrator Step 7,
+`mode: local`): drive every journey in `user-journeys.yaml` against the locally started
+app with a headless Playwright browser and capture the local app log instead of
+`databricks apps logs`. A journey that needs deployed-only identity or resources gets the
+verdict `NOT_LOCALLY_VERIFIABLE`, never PASS.
+
 ## Triggers
 
 Invoke when the user says any of:

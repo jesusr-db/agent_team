@@ -35,6 +35,8 @@ For teams with `ui-ux-analyst`:
 
 **`/improve-ux` (existing apps).** Like `/add-feature` but focused on UI: `<direction>` is free text or a path to a file (e.g. "make the overview denser and add empty states"; add `--human checkpoint|async|off`, `--no-deploy`). The `ux-scoper` skill snapshots the app, derives a lightweight `ux-brief.yaml` if none exists (marked `derived: true`), and tags `ux-focus/<slug>` as a rollback point. Phase 0 runs the critic in **audit mode** on the app as it is today; you review the findings at the phase boundary and can add comments to `ux-feedback.md`. Then `ui-ux-analyst` redesigns, `app-developer` rebuilds only the affected pages, and the normal critic gate and fix loop run. Once the design is approved (by you, or by the critic gate if you don't respond), `deploy-engineer` redeploys and `qa-engineer` runs the user journeys against the deployed app; use `--no-deploy` to stop before that.
 
+**Journey fixes are validated before redeploy.** When deployed-app journeys fail, the fix is merged, the app is started locally, and *all* journeys are re-run against it (plus a critic regression pass if the frontend changed). Only when every journey passes locally does `deploy-engineer` redeploy, followed by one confirming deployed run. Journeys that can't be verified locally (deployed-only identity, or a pipeline/model/serving fix) are flagged `NOT_LOCALLY_VERIFIABLE` and need your approval before a redeploy.
+
 **Human review (optional).** In `team-manifest.yaml`:
 
 ```yaml
@@ -47,19 +49,22 @@ With `async` (default), after the critic's first attempt the orchestrator gives 
 
 ## Agents
 
-| Agent | Role |
-|---|---|
-| `data-discovery` | Profiles source data in Phase 0 (`data-profile.yaml`, samples, dictionary). |
-| Domain SME (generated) | Researches the domain; writes `domain-playbook.md`, `data-requirements.yaml`, `success-criteria.yaml`. |
-| `data-engineer` | Ingestion and transformation pipelines. |
-| `data-scientist` | MLflow models and serving. |
-| `genai-architect` | RAG, Vector Search, prompt and model design. |
-| `ui-ux-analyst` | Workflows, wireframes, component contract, design spec. |
-| `ux-critic` | Rendered-app UX gate before deploy. |
-| `app-developer` | FastAPI + React Databricks Apps. |
-| `deploy-engineer` | Finalizes DAB config and deploys. |
-| `qa-engineer` | Progressive QA and journey validation. |
-| `adversarial-reviewer` | Independent red-team gate. |
+| Agent | Model | Typical phase | Description |
+|---|---|---|---|
+| `pm-orchestrator` (skill) | main session (Opus recommended) | all | Runs in the main session. Dispatches workers, merges worktrees, runs the QA, UX and adversarial gates, checkpoints progress, escalates blockers. |
+| Domain SME (generated) | haiku | 0 | Researches the domain; writes `domain-playbook.md`, `data-requirements.yaml`, `success-criteria.yaml`, and `ux-brief.yaml` for app teams. |
+| `data-discovery` | haiku | 0 | Profiles source data: schemas, samples, distributions, quality flags (`data-profile.yaml`, data dictionary). |
+| `data-engineer` | haiku | 1 | Builds ingestion and transformation pipelines (Spark Declarative Pipelines, Unity Catalog, Auto Loader). |
+| `data-scientist` | haiku | 1-2 | Trains, registers and serves ML models with MLflow and Model Serving. |
+| `genai-architect` | opus | 1-2 | Designs RAG, Vector Search, embedding, prompt and model-selection architecture. |
+| `ui-ux-analyst` | sonnet | 1 | Designs workflows, wireframes, the component contract and the design spec, using the installed UI skills. |
+| `app-developer` | sonnet | 2-3 | Builds the FastAPI backend and React/TypeScript frontend for Databricks Apps. |
+| `qa-engineer` | sonnet | every phase | Progressive QA checks; in the final phase drives user journeys against the app. |
+| `ux-critic` | sonnet | build phase (gate) | Starts the app locally, drives each screen, and judges the rendered UI against the brief and design spec; also audits existing apps for `/improve-ux`. |
+| `deploy-engineer` | haiku | final | Finalizes the Databricks Asset Bundle config and deploys. |
+| `adversarial-reviewer` | opus | final (gate) | Independent, read-only red team that tries to falsify the build from the spec, contracts and artifacts. |
+
+Model values are the `model:` line in each agent's definition (`agents/*.md`, mirrored in `templates/core/*.yaml`). Change a line there to re-tier an agent.
 
 Registered agents live in `agents/`; their templates are in `templates/core/`, and generators for SMEs and specialists are in `templates/meta/`.
 

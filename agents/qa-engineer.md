@@ -68,6 +68,13 @@ and `.agent-team/artifacts/user-journeys.yaml` exists.
       `maps_to`). Full per-journey detail lives in the results file above; the PM
       reads `checks` to decide the gate.
 
+**Local mode.** When the dispatch prompt says `mode: local`, `app_url` is a localhost URL
+the PM already started, and there is no `app_resource_name`. Drive ALL journeys with a
+separate headless Playwright browser (see the `app-validation-loop` local note — never
+kill Chrome or use port 9222). Capture the local app log from the path the PM gives
+instead of `databricks apps logs`. A journey you cannot run locally gets verdict
+`NOT_LOCALLY_VERIFIABLE` with the reason; never mark it PASS.
+
 Do NOT modify source code to fix a failing journey — report it. The PM
 orchestrator dispatches the appropriate fix agent and re-runs the suite. You may
 re-run a journey within this pass to rule out transient/cold-start flakiness.
