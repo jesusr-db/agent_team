@@ -102,3 +102,46 @@ flowchart TD
     V --> END([done])
     DEP -- yes --> END2([done: local build, rollback tag available])
 ```
+
+## 6. Journey failure handling (fix and validate before redeploy)
+
+```mermaid
+flowchart TD
+    F["Deployed-app journey FAIL/PARTIAL"] --> FIX["owning agent fixes<br/>scoped to failing journeys"]
+    FIX --> M[merge worktrees]
+    M --> L["start app locally,<br/>qa-engineer runs ALL journeys (mode: local)"]
+    L --> NV{"any NOT_LOCALLY_VERIFIABLE?"}
+    NV -- yes --> ASK["escalate: user approves<br/>resource-only or full redeploy"]
+    NV -- no --> LP{"all journeys PASS locally?"}
+    LP -- no --> FIX
+    LP -- yes --> FE{"frontend files changed<br/>and UX gate present?"}
+    FE -- yes --> CR["ux-critic regression attempt"]
+    CR -- FAIL --> FIX
+    CR -- PASS --> RD
+    FE -- no --> RD["deploy-engineer redeploys"]
+    ASK --> RD
+    RD --> CONF["one deployed-app journey pass<br/>(all journeys) to confirm"]
+    CONF -- FAIL --> FIX
+    CONF -- PASS --> DONE([Phase 4 passes])
+```
+
+All loops share the phase's 3-attempt cap, then escalate.
+
+## 7. Agents and models
+
+| Agent | Model | Typical phase | Description |
+|---|---|---|---|
+| `pm-orchestrator` (skill) | main session (Opus recommended) | all | Runs in the main session. Dispatches workers, merges worktrees, runs the QA, UX and adversarial gates, checkpoints progress, escalates blockers. |
+| Domain SME (generated) | haiku | 0 | Researches the domain; writes `domain-playbook.md`, `data-requirements.yaml`, `success-criteria.yaml`, and `ux-brief.yaml` for app teams. |
+| `data-discovery` | haiku | 0 | Profiles source data: schemas, samples, distributions, quality flags (`data-profile.yaml`, data dictionary). |
+| `data-engineer` | haiku | 1 | Builds ingestion and transformation pipelines (Spark Declarative Pipelines, Unity Catalog, Auto Loader). |
+| `data-scientist` | haiku | 1-2 | Trains, registers and serves ML models with MLflow and Model Serving. |
+| `genai-architect` | opus | 1-2 | Designs RAG, Vector Search, embedding, prompt and model-selection architecture. |
+| `ui-ux-analyst` | sonnet | 1 | Designs workflows, wireframes, the component contract and the design spec, using the installed UI skills. |
+| `app-developer` | sonnet | 2-3 | Builds the FastAPI backend and React/TypeScript frontend for Databricks Apps. |
+| `qa-engineer` | sonnet | every phase | Progressive QA checks; in the final phase drives user journeys against the app. |
+| `ux-critic` | sonnet | build phase (gate) | Starts the app locally, drives each screen, and judges the rendered UI against the brief and design spec; also audits existing apps for `/improve-ux`. |
+| `deploy-engineer` | haiku | final | Finalizes the Databricks Asset Bundle config and deploys. |
+| `adversarial-reviewer` | opus | final (gate) | Independent, read-only red team that tries to falsify the build from the spec, contracts and artifacts. |
+
+Model values are the `model:` line in each agent's definition (`agents/*.md`, mirrored in `templates/core/*.yaml`). Change a line there to re-tier an agent.

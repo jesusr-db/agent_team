@@ -224,10 +224,33 @@ For each agent:
   - serving-endpoint / model output → `data-scientist` or `genai-architect`
   - data/pipeline-sourced wrong values → `data-engineer`
   Dispatch the owning agent scoped to the specific failing journeys (include the
-  reproduction and backend evidence from the results file). Then re-dispatch the
-  QA agent for the Phase 4 gate (again passing `app_url`/`app_resource_name`) to
-  re-drive the journeys. Journey retries share this phase's `qa_attempts` counter
-  (same 3-attempt cap across all Phase 4 QA failures), then escalate.
+  reproduction and backend evidence from the results file). Journey retries share this
+  phase's `qa_attempts` counter (same 3-attempt cap across all Phase 4 QA failures),
+  then escalate.
+
+  **Fix and validate BEFORE redeploying.** Never redeploy to see whether a fix worked.
+  After the fix is merged (Step 6):
+  1. **Local journey validation (all journeys).** Start the app locally (`run_command` /
+     `health_url` from `.agent-team/status/app-developer.yaml` or the manifest's
+     `app_run`) in the background via Bash, and re-dispatch the QA agent for Journey
+     Validation with `app_url` set to the local URL, `mode: local`, and ALL journeys
+     (not only the failing ones — a fix must not regress a passing journey). Stop the
+     app afterwards. Results go to `.agent-team/status/journey-test-results-phase-4.md`.
+  2. **UX regression check.** If the fix changed frontend files (list the changed files
+     since the commit where the UX gate last passed; any under `src/app/frontend/`
+     counts) and the phase had a `ux-critic` gate, re-run Step 7.4 for one regression
+     attempt (critic only; same shared counter) before continuing. A `FAIL` there is
+     fixed and re-validated from the top of this list.
+  3. **Redeploy only when step 1 shows every journey PASS locally** (and step 2, if it
+     applied, passed). Then dispatch `deploy-engineer` and run one final deployed-app
+     journey pass (all journeys, `app_url` as before) as confirmation. A failure in
+     that final pass loops back through steps 1-3 with the shared attempt cap.
+  4. **Not locally verifiable.** If a journey cannot run locally (needs a deployed-only
+     identity or OBO scope, or the fix lives in a pipeline/model/serving endpoint
+     rather than app code), do not silently skip it: record it as
+     `NOT_LOCALLY_VERIFIABLE` with the reason, escalate to the user via
+     `.agent-team/status/escalation.md`, and proceed to a resource-only or full
+     redeploy only on the user's approval.
 - **Checkpoint:** Write QA attempt count and result
 - Track in `qa_attempts` field
 
