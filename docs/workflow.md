@@ -1,48 +1,51 @@
 # agent-team Workflow
 
-Diagrams render on GitHub (Mermaid). They describe the plugin as it exists on this branch, including the UI/UX loop (section 4).
+Diagrams render on GitHub (Mermaid). They describe the plugin as it exists on this branch, including the UI/UX loop. Thick arrows (`==>`) mark **iteration loops**; every loop shares the phase's 3-attempt cap, then escalates to a human.
 
 ## 1. End-to-end flow
 
 ```mermaid
 flowchart TD
-    PRD([PRD]) --> CT["/create-team<br/>team-builder + phase-planner"]
-    CT --> CFG[".agent-team/<br/>team-manifest, agents, contracts, phases,<br/>user-journeys.yaml"]
-    CFG --> ST["/start-team<br/>loads pm-orchestrator skill<br/>in the MAIN session"]
-    ST --> LOOP
+    PRD(["PRD"]) --> CT["/create-team: team-builder + phase-planner"]
+    CT --> CFG[".agent-team/: manifest, agents, contracts, phases, user-journeys"]
+    CFG --> ST["/start-team: pm-orchestrator skill runs in the MAIN session"]
+    ADD["/add-feature: feature-scoper"] -.-> CFG
+    ST --> S1
 
-    subgraph LOOP["Per-phase loop (orchestrator at tree root)"]
-        direction TB
-        S1[read_phase_config] --> S2[resolve_contracts]
-        S2 --> S3["dispatch_agents<br/>worktree-isolated, parallel groups"]
-        S3 --> S4[await_agents]
-        S4 --> S5{status?}
-        S5 -- "NEEDS_CONTEXT / BLOCKED" --> S3
-        S5 -- "DONE" --> S6[merge_worktrees]
-        S6 --> S7["qa_gate<br/>qa-engineer"]
-        S7 -- "fail (max 3)" --> S3
-        S7 -- pass --> G{"gates: includes<br/>adversarial-reviewer?"}
-        G -- yes --> S75["Step 7.5<br/>adversarial-reviewer"]
-        S75 -- "findings (shared attempt cap)" --> S3
-        S75 -- pass --> CP
-        G -- no --> CP[checkpoint + introspection]
+    subgraph PHASE["Per-phase loop (repeats for each phase)"]
+        S1["read_phase_config"] --> S2["resolve_contracts"]
+        S2 --> S3["dispatch_agents: worktree-isolated, parallel groups"]
+        S3 --> S4["await_agents"]
+        S4 --> S5{"agent status?"}
+        S5 ==>|"NEEDS_CONTEXT or BLOCKED: re-dispatch"| S3
+        S5 -->|"DONE"| S6["merge_worktrees"]
+        S6 --> S7{"qa_gate: qa-engineer"}
+        S7 ==>|"FAIL: dispatch fix agent, attempt n of 3"| S3
+        S7 -->|"PASS"| S74{"ux-critic in gates?"}
+        S74 -->|"yes"| UXG["Step 7.4 UX gate (see section 4)"]
+        S74 -->|"no"| S75
+        UXG ==>|"FAIL: fix and re-QA"| S3
+        UXG -->|"PASS"| S75{"adversarial-reviewer in gates?"}
+        S75 -->|"yes"| ADV["Step 7.5 adversarial review"]
+        S75 -->|"no"| CP
+        ADV ==>|"FAIL: fix and re-run QA + review"| S3
+        ADV -->|"PASS"| CP["checkpoint + introspection"]
     end
 
-    CP --> HT{{"Human touchpoint<br/>confirm next phase"}}
-    HT --> LOOP
-    HT --> DONE([All phases complete])
-
-    ADD["/add-feature<br/>feature-scoper"] -.-> CFG
+    CP --> HT{"human touchpoint: confirm next phase"}
+    HT ==>|"next phase"| S1
+    HT -->|"last phase done"| DONE(["All phases complete"])
+    S7 -.->|"3 failed attempts"| ESC(["escalate to human"])
 ```
 
 ## 2. Phase structure
 
 ```mermaid
 flowchart LR
-    P0["Phase 0<br/>data-discovery<br/>domain SME"] --> P1["Phase 1<br/>data-engineer<br/>data-scientist<br/>genai-architect<br/>ui-ux-analyst"]
-    P1 --> P2["Phase 2<br/>app-developer<br/>consumers of data outputs"]
-    P2 --> P3[Phase 3<br/>integration]
-    P3 --> P4["Phase 4 (final)<br/>deploy-engineer<br/>qa-engineer + journeys<br/>gate: adversarial-reviewer"]
+    P0["Phase 0: data-discovery, domain SME"] --> P1["Phase 1: data-engineer, data-scientist, genai-architect, ui-ux-analyst"]
+    P1 --> P2["Phase 2: app-developer, consumers of data outputs. Gates: qa-engineer, ux-critic"]
+    P2 --> P3["Phase 3: integration"]
+    P3 --> P4["Phase 4 (final): deploy-engineer, qa-engineer with journeys. Gate: adversarial-reviewer"]
 ```
 
 ## 3. Orchestration constraint
@@ -51,85 +54,82 @@ The harness supports one level of subagent fan-out. The orchestrator therefore r
 
 ```mermaid
 flowchart TD
-    MAIN["Main session<br/>pm-orchestrator (skill)"] --> W1[data-engineer]
-    MAIN --> W2[app-developer]
-    MAIN --> W3[qa-engineer]
-    MAIN --> W4[adversarial-reviewer]
-    W1 -. "no further dispatch" .-x X[ ]
-    style X fill:none,stroke:none
+    MAIN["Main session: pm-orchestrator skill"] --> W1["data-engineer"]
+    MAIN --> W2["app-developer"]
+    MAIN --> W3["qa-engineer"]
+    MAIN --> W4["ux-critic"]
+    MAIN --> W5["adversarial-reviewer"]
+    W1 -.-|"workers never dispatch other agents"| W2
 ```
 
 ## 4. UI/UX loop
 
 ```mermaid
 flowchart TD
-    SME["Domain SME (Phase 0)"] -->|ux-brief.yaml| UX["ui-ux-analyst (Phase 1)<br/>skill stack: databricks-app-design,<br/>ui-ux-pro-max, dataviz"]
-    UX -->|"ui-design-spec.yaml<br/>wireframes, component contract"| APP["app-developer<br/>records run_command + health_url"]
-    APP --> QA[qa_gate]
-    QA --> CR["ux-critic<br/>start app locally, drive each screen,<br/>screenshot every viewport"]
-    CR --> V{status}
-    V -- BLOCKED --> ESC1["escalate: deploy first<br/>or skip gate"]
-    V -- "PASS or FAIL" --> HR{"attempt 1 and<br/>ux_review.human != off?"}
-    HR -- "yes" --> HUM["print app link + ux-feedback.md<br/>wait up to 5 min (async)"]
-    HUM -- "comments saved" --> HF["human findings<br/>(top priority)"]
-    HUM -- "no response" --> ROUTE
+    SME["Domain SME, Phase 0"] -->|"ux-brief.yaml"| UX["ui-ux-analyst, Phase 1: skill stack databricks-app-design, ui-ux-pro-max, dataviz"]
+    UX -->|"ui-design-spec.yaml, wireframes, component contract"| APP["app-developer: records run_command and health_url"]
+    APP --> QA["qa_gate"]
+    QA --> CR["ux-critic: start app locally, drive each screen, screenshot every viewport (attempt k of 3)"]
+    CR --> V{"critic status?"}
+    V -->|"BLOCKED: app will not start"| ESC1(["escalate: deploy first or skip gate"])
+    V -->|"PASS or FAIL"| HR{"attempt 1 and human review enabled?"}
+    HR -->|"yes"| HUM["print app link + ux-feedback.md, wait up to 5 min"]
+    HUM -->|"comments saved"| HF["human findings, top priority"]
+    HUM -->|"no response"| ROUTE
     HF --> ROUTE
-    HR -- no --> ROUTE{"open blocker/major findings?"}
-    ROUTE -- none --> DEP[deploy]
-    ROUTE -- "owner: ui-ux-analyst" --> UX2["ui-ux-analyst fixes spec"] --> APP2
-    ROUTE -- "owner: app-developer" --> APP2["app-developer fixes<br/>scoped finding IDs"]
-    APP2 --> QA
-    ROUTE -. "same IDs twice or 3 attempts" .-> ESC2["escalate to human"]
+    HR -->|"no"| ROUTE{"open blocker or major findings?"}
+    ROUTE -->|"none"| DEP(["design approved: continue to deploy"])
+    ROUTE ==>|"spec problem"| UX2["ui-ux-analyst fixes spec"]
+    UX2 ==> APP2["app-developer rebuilds affected screens"]
+    ROUTE ==>|"code problem"| APP2
+    APP2 ==>|"merge, re-run QA, critic attempt k+1"| QA
+    ROUTE -.->|"same finding IDs twice, or 3 attempts"| ESC2(["escalate to human"])
 ```
-
-Every box is a one-level subagent dispatched by the orchestrator in the main session; the loop is orchestrator-driven, not nested.
 
 ## 5. `/improve-ux` (existing app)
 
 ```mermaid
 flowchart TD
-    DIR(["direction text or file"]) --> SC["ux-scoper<br/>snapshot app, derive ux-brief if missing,<br/>tag ux-focus/slug, write scoped .agent-team/"]
-    SC --> ST["/start-team (mode: incremental, focus: ux)"]
-    ST --> P0["Phase 0: ux-critic in audit mode<br/>on the app as it is today"]
-    P0 --> HT{{"phase boundary:<br/>you review findings,<br/>add comments to ux-feedback.md"}}
-    HT --> P1["Phase 1: ui-ux-analyst<br/>updates design spec from audit + direction"]
-    P1 --> P2["Phase 2: app-developer<br/>rebuilds affected pages only"]
-    P2 --> QA[qa-engineer]
-    QA --> GATE["ux-critic gate + fix loop<br/>(section 4)<br/>design approved by you or the critic"]
-    GATE --> DEP{"--no-deploy?"}
-    DEP -- no --> D["Phase 3: deploy-engineer"]
-    D --> V["Phase 4: qa-engineer<br/>journeys on deployed app"]
-    V --> END([done])
-    DEP -- yes --> END2([done: local build, rollback tag available])
+    DIR(["direction text or file"]) --> SC["ux-scoper: snapshot app, derive ux-brief if missing, tag ux-focus/slug, write scoped config"]
+    SC --> ST["/start-team (incremental, focus: ux)"]
+    ST --> P0["Phase 0: ux-critic in audit mode on the app as it is today"]
+    P0 --> HT{"phase boundary: you review findings and add comments to ux-feedback.md"}
+    HT --> P1["Phase 1: ui-ux-analyst updates design spec from audit + direction"]
+    P1 --> P2["Phase 2: app-developer rebuilds affected pages, then qa-engineer"]
+    P2 --> GATE["ux-critic gate + fix loop (section 4)"]
+    GATE ==>|"FAIL: fix and re-check, up to 3 attempts"| P2
+    GATE -->|"PASS: design approved"| DEP{"no-deploy flag?"}
+    DEP -->|"no"| D["Phase 3: deploy-engineer"]
+    D --> V["Phase 4: qa-engineer runs journeys on deployed app (section 6 on failure)"]
+    V --> END1(["done"])
+    DEP -->|"yes"| END2(["done: local build, rollback tag available"])
 ```
 
 ## 6. Journey failure handling (fix and validate before redeploy)
 
 ```mermaid
 flowchart TD
-    F["Deployed-app journey FAIL/PARTIAL"] --> FIX["owning agent fixes<br/>scoped to failing journeys"]
-    FIX --> M[merge worktrees]
-    M --> L["start app locally,<br/>qa-engineer runs ALL journeys (mode: local)"]
+    F["Deployed-app journey FAIL or PARTIAL"] --> FIX["owning agent fixes, scoped to failing journeys"]
+    FIX --> M["merge worktrees"]
+    M --> L["start app locally; qa-engineer runs ALL journeys (mode: local)"]
     L --> NV{"any NOT_LOCALLY_VERIFIABLE?"}
-    NV -- yes --> ASK["escalate: user approves<br/>resource-only or full redeploy"]
-    NV -- no --> LP{"all journeys PASS locally?"}
-    LP -- no --> FIX
-    LP -- yes --> FE{"frontend files changed<br/>and UX gate present?"}
-    FE -- yes --> CR["ux-critic regression attempt"]
-    CR -- FAIL --> FIX
-    CR -- PASS --> RD
-    FE -- no --> RD["deploy-engineer redeploys"]
+    NV -->|"yes"| ASK["escalate: user approves resource-only or full redeploy"]
+    NV -->|"no"| LP{"all journeys PASS locally?"}
+    LP ==>|"no: iterate"| FIX
+    LP -->|"yes"| FE{"frontend changed and UX gate present?"}
+    FE -->|"yes"| CR["ux-critic regression attempt"]
+    CR ==>|"FAIL: iterate"| FIX
+    CR -->|"PASS"| RD["deploy-engineer redeploys"]
+    FE -->|"no"| RD
     ASK --> RD
-    RD --> CONF["one deployed-app journey pass<br/>(all journeys) to confirm"]
-    CONF -- FAIL --> FIX
-    CONF -- PASS --> DONE([Phase 4 passes])
+    RD --> CONF["one deployed-app journey pass, all journeys"]
+    CONF ==>|"FAIL: iterate"| FIX
+    CONF -->|"PASS"| DONE(["Phase 4 passes"])
 ```
-
-All loops share the phase's 3-attempt cap, then escalate.
 
 ## 7. Agents and models
 
-| Agent | Model | Typical phase | Description |
+| Agent | Model | Phase | Description |
 |---|---|---|---|
 | `pm-orchestrator` (skill) | main session (Opus recommended) | all | Runs in the main session. Dispatches workers, merges worktrees, runs the QA, UX and adversarial gates, checkpoints progress, escalates blockers. |
 | Domain SME (generated) | haiku | 0 | Researches the domain; writes `domain-playbook.md`, `data-requirements.yaml`, `success-criteria.yaml`, and `ux-brief.yaml` for app teams. |
