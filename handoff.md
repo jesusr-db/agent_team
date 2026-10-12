@@ -15,8 +15,7 @@ agent-team/
 │   ├── create-team.md                  # /create-team <prd-path> [--catalog --schema]
 │   ├── start-team.md                   # /start-team [--phase N] [--agent name] [--dry-run]
 │   └── add-feature.md                  # /add-feature <description or file>  (NEW)
-├── agents/                             # 8 registered agents with model/tools frontmatter
-│   ├── pm-orchestrator.md              # Opus — coordinates phased execution
+├── agents/                             # registered WORKER agents with model/tools frontmatter
 │   ├── data-engineer.md                # Sonnet — data ingestion/transformation
 │   ├── data-scientist.md               # Sonnet — ML models
 │   ├── genai-architect.md              # Opus — RAG/GenAI architecture
@@ -25,6 +24,7 @@ agent-team/
 │   ├── qa-engineer.md                  # Sonnet — progressive QA validation
 │   └── ui-ux-analyst.md               # Sonnet — UI/UX wireframes + specs  (NEW)
 ├── skills/
+│   ├── pm-orchestrator/SKILL.md        # Orchestration procedure — runs in MAIN session (tree root), not a subagent
 │   ├── team-builder/SKILL.md           # PRD analysis → team assembly
 │   ├── phase-planner/SKILL.md          # Dependency analysis → phase structure
 │   ├── data-analyzer/SKILL.md          # UC table profiling  (NEW)
@@ -207,6 +207,13 @@ Execution Plan:
 
 ## Architecture Decisions
 
+- **Orchestrator runs at the tree root (main session), not as a subagent.** The
+  harness supports only one level of subagent fan-out: the root dispatches worker
+  subagents and coordinates them, but a subagent cannot dispatch or communicate
+  with further subagents. So the PM orchestration is a **skill**
+  (`skills/pm-orchestrator/SKILL.md`) that `/start-team` loads and the main session
+  executes inline — dispatching workers one level deep. Corollary: no worker agent
+  may spawn its own subagent (the `Agent` grant in worker frontmatter is unused/vestigial).
 - **Curated agents = registered plugin agents** with model/tools in frontmatter, dispatched via `subagent_type`
 - **Dynamic agents = general-purpose** with full prompt injection (can't register at runtime)
 - **Templates = metadata-only** for `/create-team` capability matching, with `registered_agent` pointer

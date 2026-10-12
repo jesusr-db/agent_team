@@ -96,35 +96,35 @@ Re-run a single agent:
 ### Default (no flags)
 Auto-resume from checkpoint. Display resume status and proceed.
 
-## Dispatch PM Orchestrator
+## Run the Orchestration (in THIS session)
 
 Read the full team manifest, all agent definitions, phase configs, and
-contracts. Then dispatch the PM orchestrator:
+contracts. Then **invoke the `pm-orchestrator` skill (via the Skill tool) and
+execute its procedure yourself, here in the main session.**
 
 ```
-Agent(
-  description: "PM Orchestrator - phased execution"
-  subagent_type: "pm-orchestrator"
-  model: "opus"
-  prompt: |
-    Execute the agent team plan.
-
-    Team manifest: [contents of team-manifest.yaml]
-    Progress: [contents of progress.yaml]
-    Phases: [list of phase files]
-    Agents: [list of agent files]
-    Contracts: [list of contract files]
-
-    Resume from: [current_state from progress.yaml]
-
-    All agent definitions, phase configs, and contracts are in
-    the .agent-team/ directory. Read them as needed.
-)
+Skill(skill: "pm-orchestrator")
 ```
 
-The PM orchestrator takes over from here. It will:
+**Do NOT dispatch the orchestrator as a subagent** (there is no
+`pm-orchestrator` agent to dispatch — it is a skill). The harness supports only
+one level of subagent fan-out: the root of the agent tree dispatches worker
+subagents and coordinates them, but a subagent cannot dispatch or communicate
+with further subagents. This main session is the root, so the orchestration
+must run here. If it ran inside a subagent, it could not see or coordinate the
+worker agents it dispatches.
+
+Once the skill is loaded, follow it with this run context in hand:
+- Team manifest: contents of `team-manifest.yaml`
+- Progress: contents of `progress.yaml`
+- Phases: the phase files in `.agent-team/phases/`
+- Agents: the agent files in `.agent-team/agents/`
+- Contracts: the contract files in `.agent-team/contracts/`
+- Resume from: `current_state` in `progress.yaml`
+
+Executing the skill, you (the main session) will:
 - Execute phases sequentially
-- Dispatch agents in parallel within phases
-- Run QA gates at phase boundaries
+- Dispatch worker agents in parallel within phases (one level deep — supported)
+- Run QA + adversarial gates at phase boundaries
 - Checkpoint progress after every step
-- Escalate blockers back to this session
+- Report at each phase boundary and escalate blockers to the user directly

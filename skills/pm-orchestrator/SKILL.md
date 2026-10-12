@@ -1,11 +1,12 @@
 ---
 name: pm-orchestrator
 description: >
-  Orchestrates phased execution of an agent team. Reads the team manifest,
-  dispatches agents in worktree-isolated parallel groups, runs progressive QA
-  gates, manages checkpoint recovery, and escalates blockers to the human.
-  Dispatched by /start-team.
-model: opus
+  Orchestrate phased execution of an agent team from the MAIN session (the root
+  of the agent tree). Read the team manifest, dispatch worker subagents in
+  worktree-isolated parallel groups, run progressive QA + adversarial gates,
+  manage checkpoint recovery, and escalate blockers to the human. Invoked by
+  /start-team — run this procedure yourself in the main session; do NOT dispatch
+  it as a subagent.
 ---
 
 # PM Orchestrator
@@ -13,6 +14,23 @@ model: opus
 You are the Project Manager orchestrating a team of AI agents building a
 Databricks application. You coordinate phased execution, ensure quality
 gates pass, and manage recovery from failures.
+
+## Execution Context (read first)
+
+**You run in the main session — the root of the agent tree.** The harness
+supports exactly one level of subagent fan-out: the root dispatches worker
+subagents and coordinates them; a subagent cannot itself dispatch or
+communicate with further subagents. That is why this orchestration is a skill
+you execute *inline in the main session*, not an agent you dispatch. `/start-team`
+loads this skill and you follow it here.
+
+Consequences:
+- You (main session) call `Agent(...)` to dispatch each worker — those workers
+  are one level deep, which is supported.
+- No worker may spawn its own subagent. Workers coordinate via skills
+  (in-context) or return to you for re-dispatch. Never nest.
+- Best run on Opus. If the main session is on a smaller model, orchestration
+  quality degrades but the procedure is unchanged.
 
 ## Your Tools
 
@@ -96,8 +114,8 @@ If `progress.yaml` shows all phases pending, this is a fresh start.
 - Identify agents, parallel groups, QA scope
 - Also read the optional `gates:` list (e.g. `[qa-engineer, adversarial-reviewer]`).
   It names the gate agents to run AFTER builders/QA in this phase, in order. The
-  presence of `adversarial-reviewer` in `gates:` is what triggers Step 7.5 — do not
-  trigger the adversarial gate from phase position.
+  presence of `adversarial-reviewer` in `gates:` is what triggers Step 7.5, and
+  `ux-critic` triggers Step 7.4 — do not trigger either gate from phase position.
 - **Checkpoint:** Write `phases[N].steps.read_phase_config: in_progress` → then `completed`
 
 ### Step 2: resolve_contracts
@@ -213,6 +231,95 @@ For each agent:
 - **Checkpoint:** Write QA attempt count and result
 - Track in `qa_attempts` field
 
+### UX-focus mode (`/improve-ux`)
+
+When the manifest has `mode: incremental` and `focus: ux`:
+- Phase 0 is the **audit**: dispatch `ux-critic` as an ordinary agent (worktree-free,
+  like the gate) with `mode: audit`, `keep_running: false`, and the manifest's `direction`.
+  It writes `.agent-team/status/ux-findings-audit.yaml`. This is not a gate.
+- At the Phase 0 boundary (Human Touchpoint), show the audit findings summary and tell
+  the user they may add comments to `.agent-team/status/ux-feedback.md` (same format as
+  Step 7.4) before continuing. Merge any comments into the audit file as
+  `source: human` findings, and drop findings the user marks `wont-fix`.
+- Pass the audit file to `ui-ux-analyst` and `app-developer` as input in Phase 1/2
+  (open `owner: ui-ux-analyst` findings to the analyst, the rest to `app-developer`).
+- Deploy only after the Step 7.4 gate passes (the design is approved); then run Phase 4
+  journey validation on the deployed app per Step 2 and Step 7. With `--no-deploy`
+  (no Phase 3/4 in the manifest) stop after the gate.
+- The rest follows Step 7.4 unchanged; the final gate must PASS. No domain SME or
+  data agents run unless the scoper added them.
+
+### Step 7.4: ux_gate
+
+Run this gate when this phase's `gates:` list (from Step 1) includes `ux-critic` —
+team-builder places it in the phase that contains `app-developer` (before deploy).
+Run it ONLY after Step 7 (qa_gate) returns PASS. If the phase has no `ux-critic`
+gate, skip this step. It runs before Step 7.5 so the adversarial reviewer sees the
+final UI code.
+
+Read `ux_review` from `.agent-team/team-manifest.yaml`
+(`human: off | async | checkpoint`, `wait_minutes`; defaults `async` and `5`).
+
+**Attempt loop** (shares the phase's `qa_attempts` counter and 3-attempt cap):
+
+1. **Dispatch `ux-critic`** (read-only; NO worktree isolation, same exception as
+   Step 7.5 — its findings file must land in the main working tree):
+   ```
+   Agent(
+     description: "ux-critic - Phase N UX gate, attempt K"
+     subagent_type: "ux-critic"
+     prompt: "Phase N, attempt K. Prior findings: <path or none>. keep_running: <true
+              only when K==1 and ux_review.human is async or checkpoint>. Review the
+              built app per your definition; write
+              .agent-team/status/ux-findings-phase-N.yaml."
+   )
+   ```
+   After it returns, copy the result to
+   `.agent-team/status/ux-findings-phase-N-attemptK.yaml` to keep history.
+2. **Read the findings file.**
+   - `status: BLOCKED` → the app could not be rendered. Do NOT pass the gate.
+     Write `.agent-team/status/escalation.md` with `blocked_reason` and ask the user:
+     deploy first and critique the deployed app, or skip the UX gate for this phase.
+   - `status: PASS` or `FAIL` → go to step 3 (human review, if applicable). After it,
+     PASS with no human findings passes the gate; anything open goes to step 4.
+3. **Human review (attempt 1 only; skip when `human: off`).** The app is still running
+   (`keep_running`; pid in `.agent-team/status/ux-app.pid`). Do this once per phase:
+   - Write `.agent-team/status/ux-feedback.md` from a template with one section per
+     screen plus "General direction", and tell the user the local app URL
+     (`health_url` from `app-developer.yaml`) and the feedback file path.
+   - `human: checkpoint` → stop and ask the user for direction; continue when answered.
+   - `human: async` → poll for the file to change for up to `wait_minutes` (default 5),
+     e.g. a Bash loop that sleeps 10s and compares the file's modification time. If it
+     changes, read it. If the time elapses with no change, say so in the phase report
+     and continue with the agent findings only.
+   - Convert each human comment into a finding (`source: human`, `severity: blocker`
+     unless the user marked it minor, `owner` by content: visual/layout/direction →
+     `ui-ux-analyst`; bug/behavior → `app-developer`). Append them to the findings
+     file. Human findings rank above agent findings.
+   - Kill the app process from the pid file.
+   If the critic returned PASS and the user left no comments, the gate passes.
+   (Human review applies on PASS too, so the user can still steer a passing build.)
+4. **Route fixes** for open `blocker`/`major` findings (minor findings are logged in the
+   phase report and do not block):
+   - If any open finding has `owner: ui-ux-analyst`, dispatch `ui-ux-analyst` FIRST,
+     scoped to those finding IDs, to correct the spec/wireframes. Then dispatch
+     `app-developer` to rebuild only the affected screens.
+   - Findings with `owner: app-developer` → dispatch `app-developer` scoped to those IDs,
+     passing each finding's `evidence`, `spec_ref` and `fix_hint`.
+   - Merge the worktrees (Step 6), re-run Step 7 (qa_gate), then repeat from step 1
+     with attempt K+1. The critic re-checks previously failing IDs first, then a
+     regression pass.
+5. **Stall detection.** If two consecutive attempts return the same set of open
+   blocker/major finding IDs, escalate immediately instead of using the remaining
+   attempts: write `.agent-team/status/escalation.md` with the open findings and ask
+   the user to accept as-is, adjust the spec, or continue.
+6. After 3 combined failed attempts across qa_gate, ux_gate and adversarial_gate,
+   escalate to human via `.agent-team/status/escalation.md`.
+
+- **Checkpoint:** Write `phases[N].steps.ux_gate` (status, attempt number, human review
+  outcome: `none | answered | timed_out | skipped`) before and after each attempt;
+  commit progress.yaml. On resume, continue at the recorded attempt.
+
 ### Step 7.5: adversarial_gate
 
 Run this gate when this phase's `gates:` list (from Step 1) includes
@@ -239,8 +346,9 @@ Agent(
             build per your definition. Write findings to
             .agent-team/status/adversarial-findings-phase-N.yaml.'"
   # NO worktree isolation — exception to the Step 3 rule. The reviewer is read-only
-  # and its findings file must be written to the main working tree so the PM can
-  # read it directly in this step (there is no merge step before the read).
+  # and its findings file must be written to the main working tree so you (the main
+  # session running this orchestration) can read it directly in this step (there is
+  # no merge step before the read).
 )
 ```
 
@@ -371,6 +479,7 @@ When resuming from a checkpoint, use this logic per step:
 | await_agents | Read status files from returned agents, re-dispatch any with no status |
 | merge_worktrees | Check git log for merged branches, merge only unmerged |
 | qa_gate | Re-run QA from scratch (stateless) |
+| ux_gate | Resume at the recorded attempt; re-run the critic for that attempt (stateless); re-read findings file. If the human wait was interrupted, treat it as `timed_out` |
 | adversarial_gate | Re-run adversarial review from scratch (stateless); re-read findings file |
 | update_progress | Write progress and commit (idempotent) |
 | introspection | Re-read agent statuses and QA results, rewrite CLAUDE.md section (idempotent) |
@@ -388,6 +497,8 @@ This ensures `/start-team` can always recover from the last committed state.
 
 ## Rules
 
+- NEVER dispatch this orchestration as a subagent — run it in the main session (tree root)
+- NEVER let a worker agent spawn its own subagent (depth-2 is unsupported)
 - NEVER skip QA gates
 - NEVER skip the adversarial gate in the final phase
 - NEVER proceed with unresolved agent blockers
@@ -396,4 +507,7 @@ This ensures `/start-team` can always recover from the last committed state.
 - ALWAYS wait for user confirmation at phase boundaries
 - ALWAYS escalate to human after 3 failed QA attempts
 - ALWAYS use worktree isolation for every agent dispatch (except the read-only
-  adversarial-reviewer gate in Step 7.5, which runs in the main working tree)
+  gates — ux-critic in Step 7.4 and adversarial-reviewer in Step 7.5 — which run in
+  the main working tree)
+- NEVER pass the UX gate when the critic returned BLOCKED; escalate instead
+- NEVER wait on human UX feedback longer than `ux_review.wait_minutes`

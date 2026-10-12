@@ -1,0 +1,54 @@
+# UI Design Spec Schema
+# Written by ui-ux-analyst to .agent-team/artifacts/ui-design-spec.yaml.
+# Read by app-developer (to build against) and ux-critic (to grade the rendered
+# app against). It complements ui-component-contract.yaml (structure/API) with the
+# visual, state and accessibility obligations the critic can check.
+
+schema_version: 1
+
+# Which UI skills were actually available and used, in priority order.
+# Record skills that were skipped and why (e.g. "design-taste-frontend: not a marketing app").
+skill_stack:
+  used: [string]
+  skipped:
+    - skill: string
+      reason: string
+
+app_genre: analytic-dashboard | report | repository | chat-data-assistant | form-workflow | marketing | other
+
+viewports:                         # the critic checks each of these
+  - {name: desktop, width: 1440, height: 900}
+  - {name: tablet,  width: 820,  height: 1180}
+
+tokens:
+  color:                           # name -> value; semantic roles, no hardcoded hex in components
+    primary: string
+    surface: string
+    text: string
+    positive: string
+    negative: string
+    # add more as needed
+  typography:
+    heading: string
+    body: string
+    scale: [string]
+  spacing: [string]
+  radius: string
+
+a11y:
+  min_contrast: 4.5
+  keyboard_path_required: true     # every primary task reachable by keyboard
+  notes: string
+
+screens:
+  - route: string                  # matches a page route in ui-component-contract.yaml
+    purpose: string
+    primary_task: string           # from ux-brief persona decision
+    max_clicks_to_primary_task: integer
+    states:                        # every data view must define all four
+      loading: string              # e.g. "Skeleton rows"
+      empty: string                # include a useful next action
+      error: string                # inline message, never blank
+      partial: string              # stale/partial data with freshness note
+    kpi_provenance_required: boolean   # unit + period + comparison + freshness/source
+    genie_surface: boolean         # true → the five Genie trust checks apply

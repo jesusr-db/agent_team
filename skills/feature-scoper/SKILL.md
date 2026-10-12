@@ -93,7 +93,7 @@ capabilities that are already fully implemented and unchanged.
 | GenAI/RAG/embeddings | genai-architect |
 | UI/frontend/backend | app-developer |
 | ML training/serving | data-scientist |
-| UI/UX design changes | ui-ux-analyst |
+| UI/UX design changes | ui-ux-analyst (+ ux-critic gate when a UI changes) |
 | Resource config changes | deploy-engineer |
 | Always included | qa-engineer |
 

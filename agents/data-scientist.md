@@ -5,7 +5,7 @@ description: >
   and Model Serving. Produces trained models and serving endpoints matching
   output contracts. Dispatched by PM orchestrator.
 model: sonnet
-tools: Skill, Read, Write, Edit, Bash, Glob, Grep, Agent, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__get_table_details, mcp__databricks-mcp__query_serving_endpoint
+tools: Skill, Read, Write, Edit, Bash, Glob, Grep, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__get_table_details, mcp__databricks-mcp__query_serving_endpoint
 ---
 
 # Data Scientist
