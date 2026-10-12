@@ -354,7 +354,12 @@ the red team. If the phase has no `adversarial-reviewer` gate, skip this step.
 containing ONLY:
 - the project description / PRD spec (from the team manifest),
 - the list of contract files in `.agent-team/contracts/` (paths — the agent reads them),
-- the built artifacts (the merged repo state — the agent reads files directly).
+- the built artifacts (the merged repo state — the agent reads files directly),
+- the app run info it needs for HTTP probes: `run_command` / `health_url` (from
+  `.agent-team/status/app-developer.yaml` or the manifest's `app_run`) and, if
+  deployed, `app_url` (GET-only probes against that one),
+- on a RE-run only: the path of its own prior findings file and `.agent-team/review/`
+  (its own probe history, not builder rationale — the firewall still holds).
 
 Do NOT include: builder agents' status rationale, QA `checks`/pass notes,
 introspection text, or "what went well" summaries. Handing those over turns the
@@ -366,8 +371,8 @@ Agent(
   subagent_type: "adversarial-reviewer"
   prompt: "<PRD spec text> + <list of .agent-team/contracts/*.yaml paths> +
            'The built artifacts are the current repo state. Try to falsify the
-            build per your definition. Write findings to
-            .agent-team/status/adversarial-findings-phase-N.yaml.'"
+            build per your definition, in rounds of batched probes (up to 3). Write
+            findings to .agent-team/status/adversarial-findings-phase-N.yaml.'"
   # NO worktree isolation — exception to the Step 3 rule. The reviewer is read-only
   # and its findings file must be written to the main working tree so you (the main
   # session running this orchestration) can read it directly in this step (there is
@@ -386,8 +391,10 @@ After it returns, read `.agent-team/status/adversarial-findings-phase-N.yaml`:
   - `deployment` → `deploy-engineer`
   - `contract` → the producer agent named in the violated contract
   Dispatch the owning agent scoped to the specific finding(s), passing the
-  `evidence` and `reproduction` from the findings file. Then re-run Step 7 (qa_gate)
-  AND re-run this Step 7.5 to confirm the fix and that it introduced no regression.
+  `evidence` and `reproduction` from the findings file (and the `probe_id`). Then
+  re-run Step 7 (qa_gate) AND re-run this Step 7.5 in **re-review mode** (pass the prior
+  findings file and `.agent-team/review/`): the reviewer re-runs only the probes behind
+  the prior findings plus one targeted regression round, rather than starting over.
 
 **Shared attempt counter:** adversarial fix cycles share the phase's `qa_attempts`
 counter (the same 3-attempt cap that covers QA failures). After 3 combined failed
@@ -503,7 +510,7 @@ When resuming from a checkpoint, use this logic per step:
 | merge_worktrees | Check git log for merged branches, merge only unmerged |
 | qa_gate | Re-run QA from scratch (stateless) |
 | ux_gate | Resume at the recorded attempt; re-run the critic for that attempt (stateless); re-read findings file. If the human wait was interrupted, treat it as `timed_out` |
-| adversarial_gate | Re-run adversarial review from scratch (stateless); re-read findings file |
+| adversarial_gate | Re-dispatch the reviewer; if `.agent-team/review/` exists, pass it so completed rounds are reused (probe files and results persist); re-read findings file |
 | update_progress | Write progress and commit (idempotent) |
 | introspection | Re-read agent statuses and QA results, rewrite CLAUDE.md section (idempotent) |
 
