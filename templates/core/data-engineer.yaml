@@ -1,7 +1,7 @@
 name: data-engineer
 display_name: Data Engineer
 description: Builds data ingestion and transformation pipelines on Databricks
-model: sonnet
+model: haiku
 registered_agent: agents/data-engineer.md
 typical_phases: [1]
 

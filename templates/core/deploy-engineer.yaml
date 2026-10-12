@@ -3,7 +3,7 @@ display_name: Deploy Engineer
 description: >
   Discovers all agent-produced resources, generates setup_job, finalizes
   DAB bundle manifest, validates config, and deploys to Databricks workspace
-model: sonnet
+model: haiku
 registered_agent: agents/deploy-engineer.md
 typical_phases: [4]
 

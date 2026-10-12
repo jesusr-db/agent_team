@@ -1,7 +1,7 @@
 name: data-scientist
 display_name: Data Scientist
 description: Builds and deploys ML models on Databricks
-model: sonnet
+model: haiku
 registered_agent: agents/data-scientist.md
 typical_phases: [1]
 

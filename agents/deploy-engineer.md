@@ -5,7 +5,7 @@ description: >
   Discovers all agent-produced resources, generates setup_job, validates
   bundle config, provisions resources, and runs deployment.
   Dispatched by PM orchestrator.
-model: sonnet
+model: haiku
 tools: Skill, Read, Write, Edit, Bash, Glob, Grep, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__get_best_warehouse, mcp__databricks-mcp__get_best_cluster, mcp__databricks-mcp__get_cluster_status, mcp__databricks-mcp__manage_jobs
 ---
 

@@ -59,7 +59,7 @@ description: Ingest and transform raw data into feature tables
 agents:
   - name: data-engineer
     parallel_group: data
-    model: sonnet
+    model: haiku
     inputs:
       - contract: domain-playbook
     outputs:

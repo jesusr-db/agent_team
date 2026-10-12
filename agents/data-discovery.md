@@ -7,7 +7,7 @@ description: >
   CSVs, and a human-readable data dictionary. Runs in Phase 0 so every downstream
   agent has real data context instead of PRD-inferred guesses.
   Dispatched by PM orchestrator.
-model: sonnet
+model: haiku
 tools: Skill, Read, Write, Edit, Bash, Glob, Grep, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__get_table_details, mcp__databricks-mcp__manage_uc_objects
 ---
 
