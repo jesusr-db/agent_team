@@ -7,6 +7,15 @@ description: "Drive an already-deployed, OAuth-authenticated web app through use
 
 Drive an already-deployed, OAuth-walled web app from Claude Code. Optimized for Databricks Apps (`*.databricksapps.com`) on this Mac but works for any app whose auth lives in the user's regular Chrome Default profile.
 
+## Local, unauthenticated runs (ux-critic)
+
+The `ux-critic` gate reuses the Playwright technique below against a locally started app
+(`http://localhost:<port>`), where there is no OAuth wall: skip the debug-profile and
+cookie setup entirely and launch a separate headless Playwright Chromium. Do not run this
+skill's `pkill` of Chrome or use port 9222 for that case; the user's browser may be open. It additionally forces loading/empty/error
+states and screenshots every route at each viewport in `ui-design-spec.yaml`. Evidence
+goes to `.agent-team/artifacts/ux-screenshots/`.
+
 ## Triggers
 
 Invoke when the user says any of:

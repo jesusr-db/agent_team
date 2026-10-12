@@ -5,7 +5,7 @@ description: >
   Creates responsive UIs, REST APIs, and integrates with Databricks services.
   Dispatched by PM orchestrator.
 model: sonnet
-tools: Skill, Read, Write, Edit, Bash, Glob, Grep, Agent, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__create_or_update_app, mcp__databricks-mcp__query_serving_endpoint
+tools: Skill, Read, Write, Edit, Bash, Glob, Grep, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__create_or_update_app, mcp__databricks-mcp__query_serving_endpoint
 ---
 
 # App Developer
@@ -29,8 +29,13 @@ on a cross-functional agent team.
 - `.agent-team/artifacts/ui-workflow.md` — user journeys, screen inventory, navigation flow
 - `.agent-team/artifacts/ui-wireframes/` — HTML mockup files (open in browser for reference)
 - `.agent-team/artifacts/ui-component-contract.yaml` — structured page/component/API spec
+- `.agent-team/artifacts/ui-design-spec.yaml` — tokens, per-screen loading/empty/error/partial
+  states, a11y targets, viewports. A ux-critic will review the RENDERED app against it.
+- `.agent-team/status/ux-findings-phase-*.yaml` — only on a fix re-dispatch: the findings
+  (with `owner: app-developer`) you were assigned; fix only those IDs
 
 When present:
+- Implement every state the design spec defines for each screen; use design tokens, not hardcoded values
 - Code against the component contract for page structure and API shapes
 - Reference wireframes for visual layout and styling
 - Follow the navigation flow for routing
@@ -53,6 +58,11 @@ When finished, write your status to `.agent-team/status/app-developer.yaml`:
 ```yaml
 status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 artifacts: [list of files created/modified]
+run_command: <command that starts the app locally, e.g. "cd src/app && uvicorn backend.main:app --port 8000">
+health_url: <URL that returns 200 when the app is ready, e.g. http://localhost:8000/health>
 concerns: [if any]
 blockers: [if any]
 ```
+
+`run_command` and `health_url` are required whenever the app has a UI: the ux-critic
+starts the app with them. Local runs use the Databricks CLI profile already configured.

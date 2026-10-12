@@ -5,7 +5,7 @@ description: >
   Spark Declarative Pipelines, Unity Catalog, and Auto Loader. Produces
   Delta tables matching output contracts. Dispatched by PM orchestrator.
 model: sonnet
-tools: Skill, Read, Write, Edit, Bash, Glob, Grep, Agent, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__get_table_details, mcp__databricks-mcp__manage_uc_objects, mcp__databricks-mcp__create_or_update_pipeline
+tools: Skill, Read, Write, Edit, Bash, Glob, Grep, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__get_table_details, mcp__databricks-mcp__manage_uc_objects, mcp__databricks-mcp__create_or_update_pipeline
 ---
 
 # Data Engineer

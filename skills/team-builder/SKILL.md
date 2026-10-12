@@ -129,11 +129,19 @@ When `ui-design`, `ux-workflow`, `wireframing`, or `frontend-planning` is matche
 select the `ui-ux-analyst` template. Only select `ui-ux-analyst` when a domain SME
 agent is also present on the team (it depends on the domain playbook as required input).
 
+When `ui-ux-analyst` is selected, also:
+- Tell the domain SME (in its generated prompt) that the team has an app UI, so it
+  writes `.agent-team/artifacts/ux-brief.yaml` (the analyst and the critic depend on it).
+- Include the **ux-critic** gate agent (template `templates/core/ux-critic.yaml`,
+  registered agent `ux-critic`). It is a gate, not a producer.
+
 Always include these agents regardless of capabilities:
 - **qa-engineer** (always needed for validation)
 - **deploy-engineer** (always needed for deployment)
 - **adversarial-reviewer** (always needed; independent red-team gate that runs
   in the final phase AFTER the qa-engineer gate passes — see Step 5)
+- **ux-critic** (only when `ui-ux-analyst` is on the team; rendered-app UX gate that
+  runs in the app-developer phase AFTER qa-engineer and BEFORE deploy — see Step 5)
 
 ## Step 4: Generate Dynamic Specialists
 
@@ -174,7 +182,22 @@ and the roster, and emit the `gates:` key (above) into that final phase's YAML. 
 PM triggers the adversarial gate off this `gates:` key, not off phase position.
 The `gates:` key lives in the **phase YAML** (the PM reads it in Step 1
 `read_phase_config`); the team-manifest roster only marks the reviewer's role as a
-gate. Do not place `gates:` on non-final phases.
+gate. Do not place `adversarial-reviewer` on non-final phases.
+
+**ux-critic gate.** When `ux-critic` is on the team, add it to the `gates:` list of the
+phase that contains `app-developer`, after `qa-engineer`:
+
+```yaml
+# in the app-developer phase YAML
+gates:
+  - qa-engineer
+  - ux-critic        # rendered-app UX review; fix loop in pm-orchestrator Step 7.4
+```
+
+If that phase is also the final phase, order the gates `qa-engineer`, `ux-critic`,
+`adversarial-reviewer`. The `ux-critic` template declares `typical_phases: [build]` as a
+sentinel — resolve it to the phase containing `app-developer`. Never emit `ux-critic`
+in a phase without `app-developer`. The PM triggers the UX gate off this `gates:` key.
 
 `data-discovery` and domain SME agents share Phase 0 and can run in the same
 `parallel_group` — neither depends on the other.
@@ -237,6 +260,15 @@ Write all files:
   - The FINAL phase's `steps` must ALSO include `adversarial_gate: pending`
     (between `qa_gate` and `update_progress`). Non-final phases must NOT include
     `adversarial_gate` in their steps.
+  - The phase whose `gates:` includes `ux-critic` must ALSO include `ux_gate: pending`
+    (between `qa_gate` and `adversarial_gate`/`update_progress`). Other phases must
+    NOT include `ux_gate`.
+- `team-manifest.yaml` must include a `ux_review` block when `ux-critic` is on the team:
+  ```yaml
+  ux_review:
+    human: async      # off | async | checkpoint
+    wait_minutes: 5
+  ```
 - `.agent-team/artifacts/user-journeys.yaml` — only if generated in Step 1.7 (app teams)
 
 ## Step 8: Present Team Summary

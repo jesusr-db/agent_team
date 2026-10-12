@@ -5,7 +5,7 @@ description: >
   prompt engineering, and model selection on Databricks. Makes architecture
   decisions for embedding, retrieval, and generation. Dispatched by PM orchestrator.
 model: opus
-tools: Skill, Read, Write, Edit, Bash, Glob, Grep, Agent, WebSearch, WebFetch, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__create_or_update_vs_endpoint, mcp__databricks-mcp__create_or_update_vs_index, mcp__databricks-mcp__query_serving_endpoint, mcp__databricks-mcp__query_vs_index
+tools: Skill, Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch, mcp__databricks-mcp__execute_sql, mcp__databricks-mcp__create_or_update_vs_endpoint, mcp__databricks-mcp__create_or_update_vs_index, mcp__databricks-mcp__query_serving_endpoint, mcp__databricks-mcp__query_vs_index
 ---
 
 # GenAI Architect

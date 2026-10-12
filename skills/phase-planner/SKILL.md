@@ -70,6 +70,20 @@ qa_scope: |
   - Contract validation: data-to-genai schema match, artifact exists
 ```
 
+### 5b. Gates
+
+A phase YAML may carry an optional `gates:` list naming gate agents that run after the
+phase's builders, in order (read by pm-orchestrator Step 1):
+
+```yaml
+gates:
+  - qa-engineer
+  - ux-critic            # only in the phase containing app-developer
+  - adversarial-reviewer # only in the final phase
+```
+
+Gate agents are never placed in `agents:` or a `parallel_group`.
+
 ### 6. Validation
 
 Verify:

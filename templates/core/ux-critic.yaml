@@ -1,0 +1,18 @@
+name: ux-critic
+display_name: UX Critic
+description: Independent gate that reviews the rendered app against the UX brief and design spec before deploy
+model: sonnet
+registered_agent: agents/ux-critic.md
+typical_phases: [build]     # resolves to the phase containing app-developer; runs after that phase's QA gate
+
+capabilities:
+  - ux-review                # sentinel: included whenever ui-ux-analyst is on the team
+
+skills:
+  - app-validation-loop
+
+mcp_tools: []
+
+output_paths:
+  - .agent-team/status/ux-findings-phase-*.yaml
+  - .agent-team/artifacts/ux-screenshots/

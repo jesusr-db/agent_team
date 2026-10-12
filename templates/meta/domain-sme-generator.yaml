@@ -28,6 +28,7 @@ generator_prompt: |
         - .agent-team/artifacts/domain-playbook.md
         - .agent-team/artifacts/data-requirements.yaml
         - .agent-team/artifacts/success-criteria.yaml
+        - .agent-team/artifacts/ux-brief.yaml   # only when the team has an app UI
   constraints:
     - Write only to .agent-team/artifacts/
     - Do not write any application code
@@ -44,6 +45,20 @@ generator_prompt: |
   7. Write findings to .agent-team/artifacts/domain-playbook.md
   8. Write data requirements to .agent-team/artifacts/data-requirements.yaml
   9. Write success criteria to .agent-team/artifacts/success-criteria.yaml
+  10. If the team builds an app UI (the dispatch prompt will say so), also write
+      .agent-team/artifacts/ux-brief.yaml with exactly these top-level keys:
+        personas:            # list of {name, role, goal, tech_comfort}
+        decisions:           # list of {persona, decision, cadence (e.g. daily/weekly/real-time),
+                             #          information_needed, acceptable_clicks}
+        vocabulary:          # list of {domain_term, preferred_label, avoid}
+        data_density:        # per persona: low | medium | high, with a one-line reason
+        trust_needs:         # audit trail, provenance, AI-generated disclosure, role-based
+                             #   visibility, compliance display requirements
+        risky_flows:         # actions needing confirmation or undo
+        domain_mental_models:# how practitioners in this domain expect information to be organized
+      Ground every entry in the research from steps 1-6; cite the source in a
+      trailing `sources:` list. The ui-ux-analyst designs from this file and the
+      ux-critic grades the built app against it, so be specific and falsifiable.
 
   Make the SME's prompt specific to the {{domain}} domain.
   Reference real industry frameworks, standards, and best practices.

@@ -1,0 +1,37 @@
+# UX Findings Schema
+# Written by the ux-critic agent to:
+#   .agent-team/status/ux-findings-phase-<N>.yaml           (latest attempt)
+#   .agent-team/status/ux-findings-phase-<N>-attempt<K>.yaml (history, written by the PM copy)
+# Read by the PM orchestrator (Step 7.4) to decide the UX gate.
+#
+# The critic judges the RENDERED app (screenshots of the running UI) against the
+# ux-brief, the ui-design-spec and the wireframes. Every finding must cite
+# evidence and the spec line it violates.
+
+schema_version: 1
+
+# PASS    → no blocker or major findings (minor may be listed)
+# FAIL    → at least one blocker or major finding
+# BLOCKED → the app could not be started/rendered; no verdict possible
+status: PASS | FAIL | BLOCKED
+blocked_reason: string            # required when status is BLOCKED
+
+attempt: integer                  # 1-based
+viewports_checked: [string]       # e.g. ["1440x900", "820x1180"]
+screens_checked: [string]         # routes visited
+
+findings:
+  - id: string                    # stable across attempts, e.g. "UX-overview-empty-state"
+    source: agent | human
+    severity: blocker | major | minor
+    dimension: brief-fit | spec-fidelity | states | data-honesty | accessibility | runtime-health | genie-trust
+    screen: string                # route
+    evidence: string              # screenshot path, console line, or measured value
+    spec_ref: string              # e.g. ui-design-spec.yaml#screens.overview.states.empty
+                                  # human findings may cite ux-feedback.md instead
+    problem: string
+    fix_hint: string              # advisory: component or token to change
+    owner: app-developer | ui-ux-analyst   # ui-ux-analyst when the SPEC is wrong
+    status: open | fixed | wont-fix        # set on re-check; PM carries fixed ones forward
+
+coverage_notes: string            # what was and was not checked, and why
