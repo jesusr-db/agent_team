@@ -18,43 +18,45 @@ Version: 0.2.0
 
 ```mermaid
 flowchart TD
-    PRD([PRD]) --> CT["/create-team<br/>team-builder + phase-planner"]
-    CT --> CFG[".agent-team/<br/>team-manifest, agents, contracts, phases,<br/>user-journeys.yaml"]
-    CFG --> ST["/start-team<br/>dispatches pm-orchestrator"]
-    ST --> LOOP
+    PRD(["PRD"]) --> CT["/create-team: team-builder + phase-planner"]
+    CT --> CFG[".agent-team/: manifest, agents, contracts, phases, user-journeys"]
+    CFG --> ST["/start-team: dispatches pm-orchestrator"]
+    ADD["/add-feature: feature-scoper"] -.-> CFG
+    ST --> S1
 
-    subgraph LOOP["Per-phase loop"]
-        direction TB
-        S1[read_phase_config] --> S2[resolve_contracts]
-        S2 --> S3["dispatch_agents<br/>worktree-isolated, parallel groups"]
-        S3 --> S4[await_agents]
-        S4 --> S5{status?}
-        S5 -- "NEEDS_CONTEXT / BLOCKED" --> S3
-        S5 -- "DONE" --> S6[merge_worktrees]
-        S6 --> S7["qa_gate<br/>qa-engineer"]
-        S7 -- "fail (max 3)" --> S3
-        S7 -- pass --> G{"final phase:<br/>gates include<br/>adversarial-reviewer?"}
-        G -- yes --> S75["Step 7.5<br/>adversarial-reviewer"]
-        S75 -- "findings (shared attempt cap)" --> S3
-        S75 -- pass --> CP
-        G -- no --> CP[checkpoint + introspection]
+    subgraph PHASE["Per-phase loop (repeats for each phase)"]
+        S1["read_phase_config"] --> S2["resolve_contracts"]
+        S2 --> S3["dispatch_agents: worktree-isolated, parallel groups"]
+        S3 --> S4["await_agents"]
+        S4 --> S5{"agent status?"}
+        S5 ==>|"NEEDS_CONTEXT or BLOCKED: re-dispatch"| S3
+        S5 -->|"DONE"| S6["merge_worktrees"]
+        S6 --> S7{"qa_gate: qa-engineer"}
+        S7 ==>|"FAIL: dispatch fix agent, attempt n of 3"| S3
+        S7 -->|"PASS"| S75{"adversarial-reviewer in gates? (final phase)"}
+        S75 -->|"yes"| ADV["Step 7.5 adversarial review"]
+        S75 -->|"no"| CP
+        ADV ==>|"FAIL: fix and re-run QA + review"| S3
+        ADV -->|"PASS"| CP["checkpoint + introspection"]
     end
 
-    CP --> HT{{"Human touchpoint<br/>confirm next phase"}}
-    HT --> LOOP
-    HT --> DONE([All phases complete])
-
-    ADD["/add-feature<br/>feature-scoper"] -.-> CFG
+    CP --> HT{"human touchpoint: confirm next phase"}
+    HT ==>|"next phase"| S1
+    HT -->|"last phase done"| DONE(["All phases complete"])
+    S7 -.->|"3 failed attempts"| ESC(["escalate to human"])
 ```
 
 ### Phase structure
 
+Thick arrows (`==>`) mark iteration loops. All loops share a 3-attempt cap per phase, then escalate to a human.
+
 ```mermaid
 flowchart LR
-    P0["Phase 0<br/>data-discovery<br/>domain SME"] --> P1["Phase 1<br/>data-engineer<br/>data-scientist<br/>genai-architect<br/>ui-ux-analyst"]
-    P1 --> P2["Phase 2<br/>app-developer<br/>consumers of data outputs"]
-    P2 --> P3[Phase 3<br/>integration]
-    P3 --> P4["Phase 4 (final)<br/>deploy-engineer<br/>qa-engineer + user journeys<br/>gate: adversarial-reviewer"]
+    P0["Phase 0: data-discovery, domain SME"] --> P1["Phase 1: data-engineer, data-scientist, genai-architect, ui-ux-analyst"]
+    P1 --> P2["Phase 2: app-developer, consumers of data outputs"]
+    P2 --> P3["Phase 3: integration"]
+    P3 --> P4["Phase 4 (final): deploy-engineer, qa-engineer with user journeys. Gate: adversarial-reviewer"]
+    P4 ==>|"journey or review FAIL: fix and re-run, up to 3 attempts"| P4
 ```
 
 Only the phases an app needs are created; `/create-team` collapses empty ones.
