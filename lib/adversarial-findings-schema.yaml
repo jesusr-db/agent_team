@@ -24,6 +24,8 @@ findings:
     owner_surface: data | pipeline | model | serving-endpoint | app-frontend | app-backend | deployment | contract
     # The spec/PRD line or contract field this falsifies. REQUIRED — a finding
     # with no spec/contract anchor is an opinion, not a finding; drop it.
+    probe_id: string                # id of the probe whose FALSIFIED result is the evidence
+                                    # (see lib/adversarial-probe-schema.yaml); optional for static-reading findings
     falsifies: string
     evidence: string                # file:line, command output, or contract path proving it
     reproduction: string            # exact steps/command to observe the failure
@@ -32,3 +34,10 @@ findings:
 # Free-text reviewer notes: attack surfaces probed, what was NOT checked, and why.
 # Lets the PM and humans judge coverage.
 coverage_notes: string
+
+# Review rounds actually run and what each covered, so the PM and humans can judge depth.
+rounds:
+  - round: integer
+    probes_run: integer
+    counts: {HOLDS: integer, FALSIFIED: integer, ERROR: integer, SKIPPED: integer}
+    summary: string                 # what this round tested and what it decided to probe next

@@ -26,7 +26,7 @@ flowchart TD
         S74 -->|"no"| S75
         UXG ==>|"FAIL: fix and re-QA"| S3
         UXG -->|"PASS"| S75{"adversarial-reviewer in gates?"}
-        S75 -->|"yes"| ADV["Step 7.5 adversarial review"]
+        S75 -->|"yes"| ADV["Step 7.5 adversarial review (rounds, section 7)"]
         S75 -->|"no"| CP
         ADV ==>|"FAIL: fix and re-run QA + review"| S3
         ADV -->|"PASS"| CP["checkpoint + introspection"]
@@ -127,7 +127,24 @@ flowchart TD
     CONF -->|"PASS"| DONE(["Phase 4 passes"])
 ```
 
-## 7. Agents and models
+## 7. Adversarial review rounds
+
+```mermaid
+flowchart TD
+    IN["spec + contracts + built artifacts + app run info"] --> PL["plan: falsifiable claims, one probe id per claim"]
+    PL --> R1["Round 1 (broad): write data, http and static batches"]
+    R1 --> RUN["run each batch once, write results per probe"]
+    RUN --> AN["analyze: FALSIFIED probes become findings, ERROR is never a pass"]
+    AN --> NEW{"new FALSIFIED or ERROR probes and round less than 3?"}
+    NEW ==>|"yes: write targeted batches from what was found"| RUN
+    NEW -->|"no"| OUT["write findings file with probe_id and rounds summary"]
+    OUT --> ST{"demo-blocker or high finding?"}
+    ST -->|"no"| PASS(["gate PASS"])
+    ST -->|"yes"| FIXA["PM routes fix, re-runs QA"]
+    FIXA ==>|"re-review mode: re-run only prior-finding probes + one regression round"| RUN
+```
+
+## 8. Agents and models
 
 | Agent | Model | Phase | Description |
 |---|---|---|---|

@@ -18,3 +18,4 @@ mcp_tools:
 
 output_paths:
   - .agent-team/status/adversarial-findings-phase-*.yaml
+  - .agent-team/review/

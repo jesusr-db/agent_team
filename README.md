@@ -2,7 +2,7 @@
 
 A Claude Code plugin that turns a PRD into a team of AI agents and runs them in phases to build and deploy a Databricks application. Quality gates (functional QA, then an independent adversarial review) sit between build and delivery.
 
-Version: 0.3.0 (includes the orchestrator-at-root fix and the UI/UX loop).
+Version: 0.3.1 (includes the orchestrator-at-root fix and the UI/UX loop).
 
 ## Commands
 
@@ -22,6 +22,10 @@ Version: 0.3.0 (includes the orchestrator-at-root fix and the UI/UX loop).
 5. **Learning.** After each phase the orchestrator writes introspection notes into the project's `CLAUDE.md`.
 
 See [docs/workflow.md](docs/workflow.md) for diagrams.
+
+## Adversarial review (batched probes)
+
+The `adversarial-reviewer` works in up to 3 **rounds**. Each round it writes batches of probes, runs each batch once, reads the structured results, and uses them to write a more targeted next round. Batches: **data** (a one-time notebook/SQL run; scratch schema for any write probe), **http** (`lib/run_http_probes.py`; mutating requests only against the local app, GET-only against the deployed one) and **static** (grep/AST over the repo). Probes are saved under `.agent-team/review/round-K/` with stable ids, findings cite a `probe_id`, and after a fix only the probes behind prior findings are re-run plus one regression round. A probe that errors never counts as a pass. See `lib/adversarial-probe-schema.yaml`.
 
 ## UI/UX loop
 
@@ -62,7 +66,7 @@ With `async` (default), after the critic's first attempt the orchestrator gives 
 | `qa-engineer` | sonnet | every phase | Progressive QA checks; in the final phase drives user journeys against the app. |
 | `ux-critic` | sonnet | build phase (gate) | Starts the app locally, drives each screen, and judges the rendered UI against the brief and design spec; also audits existing apps for `/improve-ux`. |
 | `deploy-engineer` | haiku | final | Finalizes the Databricks Asset Bundle config and deploys. |
-| `adversarial-reviewer` | opus | final (gate) | Independent, read-only red team that tries to falsify the build from the spec, contracts and artifacts. |
+| `adversarial-reviewer` | opus | final (gate) | Independent red team that tries to falsify the build from the spec, contracts and artifacts, working in rounds of batched probes. |
 
 Model values are the `model:` line in each agent's definition (`agents/*.md`, mirrored in `templates/core/*.yaml`). Change a line there to re-tier an agent.
 

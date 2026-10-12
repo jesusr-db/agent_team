@@ -1,0 +1,58 @@
+# Adversarial Probe Batches
+# The adversarial-reviewer works in ROUNDS. Each round it writes batches of probes,
+# runs each batch once, reads the structured results, and uses them to write the next,
+# more targeted round. All files live under .agent-team/review/round-<K>/ and are kept
+# so the review is auditable and the PM can re-run failing probes after a fix.
+#
+# Every probe has a stable id and ties to a spec line or contract field. A probe's
+# result is evidence; a FALSIFIED result is a candidate finding (set `probe_id` on it).
+
+schema_version: 1
+
+limits:
+  max_rounds: 3                 # stop early when a round yields no new FALSIFIED/ERROR probe
+  stop_when_no_new_signal: true
+
+round_dir: .agent-team/review/round-<K>/
+files:
+  plan.md:                      # claims list: id -> spec line / contract field, and which batch tests it
+  data-probes.sql | data-probes.py:   # data batch (see below)
+  http-probes.json:             # HTTP batch, run by lib/run_http_probes.py
+  static-probes.sh | static-probes.py: # static batch (grep/AST over the repo)
+  results/data.json:            # one result object per probe
+  results/http.json:            # written by the runner
+  results/static.json:
+
+probe_ids: "P-<kind>-<NNN>"      # kind = data | http | static; unique across rounds
+
+result_object:                  # one per probe, in each results/*.json
+  id: string
+  claim: string                 # the falsifiable claim, anchored to a spec line or contract field
+  verdict: HOLDS | FALSIFIED | ERROR | SKIPPED
+  # HOLDS      the system defended itself / the claim stands
+  # FALSIFIED  the probe broke the claim (candidate finding)
+  # ERROR      could not execute (transport error, bad SQL). NEVER counts as HOLDS.
+  # SKIPPED    refused by a safety rule (e.g. mutating request against a non-local host)
+  failures: [string]
+  evidence: string              # observed value, row count, status, excerpt
+
+batches:
+  data:
+    what: contract columns/types, fan-out joins, null/duplicate rates, referential gaps,
+          idempotency, non-existent tables
+    how: one notebook or SQL script submitted ONCE as a one-time run
+         (databricks jobs submit, or a throwaway bundle target) — never a persistent
+         resource in the build's bundle. Emit one JSON object per probe.
+    safety: read-only on real data. Any write probe (idempotency, re-run) targets a
+            scratch schema named review_<project>_<yyyymmdd> that you create and drop.
+  http:
+    what: unauthenticated/forbidden access, malformed and boundary input, injection
+          strings, error-leak checks, CORS, mutating endpoints without auth
+    how: lib/run_http_probes.py PROBES.json RESULTS.json  (stdlib only)
+    safety: mutating probes run only against the locally started app (localhost). Against
+            the deployed app only non-mutating requests are allowed; the runner SKIPs the rest.
+  static:
+    what: secrets in code/bundles, wildcard CORS with credentials, SDK calls that do not
+          exist, hardcoded endpoints, stubbed required features
+    how: a grep/AST script over the repo emitting the same result_object list
+    safety: read-only.
