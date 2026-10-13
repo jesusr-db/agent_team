@@ -13,6 +13,14 @@ Version: 0.3.1 (includes the orchestrator-at-root fix and the UI/UX loop).
 | `/add-feature <description>` | Scope an incremental feature to only the agents it needs and extend the existing config. |
 | `/improve-ux <direction>` | UX/UI-focused pass on an existing app: audit the rendered UI, redesign, rebuild, critic gate. |
 
+## Workflow
+
+![Phases, agents and gates](docs/diagrams/seq-phases.svg)
+
+Iteration loops (QA fixes, the UX gate, journey fixes before redeploy, adversarial rounds, `/improve-ux`) are drawn as sequence diagrams in [docs/workflow.md](docs/workflow.md). Every loop shares a 3-attempt cap per phase, then escalates to a human.
+
+![UX gate loop with optional human review](docs/diagrams/seq-ux-gate.svg)
+
 ## How it works
 
 1. **Team assembly.** `team-builder` maps PRD capabilities to agent templates, derives user journeys (`user-journeys.yaml`) for app teams, and `phase-planner` orders agents into phases.
@@ -21,7 +29,7 @@ Version: 0.3.1 (includes the orchestrator-at-root fix and the UI/UX loop).
 4. **Gates.** `qa-engineer` runs progressive checks each phase; in the final phase it also drives the deployed app through the user journeys (`app-validation-loop`). When the team has a UI, `ux-critic` reviews the rendered app before deploy (see below). `adversarial-reviewer` then tries to falsify the build, read-only, from the spec, contracts and artifacts only.
 5. **Learning.** After each phase the orchestrator writes introspection notes into the project's `CLAUDE.md`.
 
-See [docs/workflow.md](docs/workflow.md) for diagrams.
+See [docs/workflow.md](docs/workflow.md) for all six sequence diagrams.
 
 ## Adversarial review (batched probes)
 
