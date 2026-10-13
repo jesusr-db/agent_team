@@ -200,6 +200,68 @@ DIAGRAMS = [
 ]
 
 
+# Variants for the `main` branch README (v0.2.0): the orchestrator is dispatched as a
+# subagent, there is no UX gate, and journeys/red team run only in the final phase.
+ORCH_MAIN = ("pm-orchestrator", "subagent · opus", "ORCH", "focal")
+DIAGRAMS += [
+    dict(
+        slug="seq-main-phases", eyebrow="Sequence · Phase flow (main)",
+        title="Phases, agents and gates",
+        desc="The orchestrator runs Phase 0 discovery and SME, pauses for human confirmation, loops builders and QA in phases one to three until QA passes, then deploys and runs final journeys and the adversarial review in phase four.",
+        actors=[HUMAN, ORCH_MAIN,
+                ("Discovery + SME", "sonnet · haiku", "PHASE 0", "backend"),
+                ("Builders", "sonnet · opus", "AGENTS", "backend"),
+                ("Gates", "qa-engineer · red team", "GATES", "backend")],
+        items=[
+            ("band", "PHASE 0"),
+            ("msg", 1, 2, "DISPATCH", "call"),
+            ("msg", 2, 1, "PLAYBOOK", "return"),
+            ("msg", 1, 0, "PHASE DONE", "async"),
+            ("msg", 0, 1, "CONFIRM", "return"),
+            ("band", "PHASES 1-3"),
+            ("loop", 1, 4, "[QA FAIL: fix, attempt n of 3]"),
+            ("msg", 1, 3, "DISPATCH", "call"),
+            ("msg", 3, 1, "STATUS", "return"),
+            ("msg", 1, 4, "QA GATE", "call"),
+            ("msg", 4, 1, "RESULT", "return"),
+            ("end",),
+            ("band", "PHASE 4"),
+            ("msg", 1, 3, "DEPLOY", "call"),
+            ("msg", 3, 1, "APP URL", "return"),
+            ("msg", 1, 4, "JOURNEYS+RED", "call"),
+            ("msg", 4, 1, "PASS", "headline"),
+        ],
+        notes=[("PLAYBOOK", "domain playbook and data profile"),
+               ("JOURNEYS+RED", "user journeys on the deployed app, then the adversarial review")],
+    ),
+    dict(
+        slug="seq-main-qa-loop", eyebrow="Sequence · Iteration (main)",
+        title="Phase execution and the QA fix loop",
+        desc="The orchestrator dispatches builders, then QA. On a QA failure it loops: dispatch fix agents scoped to the failures and re-run QA, up to three attempts, escalating to the human after the third failure. After QA passes the adversarial reviewer runs in the final phase.",
+        actors=[HUMAN, ORCH_MAIN,
+                ("Builders", "worktree-isolated", "AGENTS", "backend"),
+                ("qa-engineer", "sonnet", "GATE", "backend"),
+                ("Red team", "opus · read-only", "GATE", "backend")],
+        items=[
+            ("msg", 1, 2, "DISPATCH", "call"),
+            ("msg", 2, 1, "STATUS", "return"),
+            ("msg", 1, 3, "QA SCOPE", "call"),
+            ("loop", 0, 3, "[QA FAIL: attempt n of 3]"),
+            ("msg", 3, 1, "FAIL", "return"),
+            ("msg", 1, 2, "FIX IDS", "call"),
+            ("msg", 2, 1, "FIXED", "return"),
+            ("msg", 1, 3, "RE-RUN QA", "call"),
+            ("msg", 1, 0, "3 FAILS", "async"),
+            ("end",),
+            ("msg", 3, 1, "PASS", "headline"),
+            ("msg", 1, 4, "RED TEAM", "call"),
+            ("msg", 4, 1, "FINDINGS", "return"),
+        ],
+        notes=[("FIX IDS", "the owning agent is re-dispatched, scoped to the failing checks only"),
+               ("RED TEAM", "dispatched only in the final phase, after QA passes")],
+    ),
+]
+
 # ---------------------------------------------------------------- geometry
 def lifeline_xs(n):
     x0, x1 = 136, 904
